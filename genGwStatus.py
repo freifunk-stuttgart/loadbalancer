@@ -53,7 +53,7 @@ def getDnsStatus(segment):
         return 0
 
 def getPreference(bwlimit):
-    preference = int((bwlimit-getPeak()) / (bwlimit/100.)) # max 300mbit
+    preference = int((bwlimit-getPeak()) / (bwlimit/100.))
     return preference
 
 def genData(segmentCount, preference=0):
