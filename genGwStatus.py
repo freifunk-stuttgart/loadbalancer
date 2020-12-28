@@ -31,9 +31,9 @@ class CLIError(Exception):
         return self.msg
     def __unicode__(self):
         return self.msg
-    
 
-def getPeak24h():
+
+def getPeak():
     vnstat = json.loads(subprocess.check_output(["/usr/bin/vnstat", "-h", "--json"]).decode('utf-8'))
     #with open("/home/leonard/freifunk/FfsScripts/vnstat.json","r") as fp:
     #    vnstat = json.load(fp)
@@ -51,29 +51,29 @@ def getDnsStatus(segment):
         return 1
     except:
         return 0
-    
-def getPreference():
-    preference = int((300-getPeak24h()) / 3) # max 300mbit
+
+def getPreference(bwlimit):
+    preference = int((bwlimit-getPeak()) / (bwlimit/100.))
     return preference
-    
-def genData(preference=0):
+
+def genData(segmentCount, preference=0):
     data = {}
     data["version"] = "1"
     data["timestamp"] = int(time.time())
-   
+
     segments = {}
-    for s in range(1,32+1):
+    for s in range(1,segmentCount):
         segments[s] = {}
         segments[s]["preference"] = preference
         segments[s]["dnsactive"] = getDnsStatus(s)
-    
-    data["segments"] = segments 
+
+    data["segments"] = segments
     return data
 
 def genJson(data,output):
     with open(output,"w") as fp:
-        json.dump(data,fp ,indent=4,separators=(',', ': ')) 
-    
+        json.dump(data,fp ,indent=4,separators=(',', ': '))
+
 
 #def main(argv=None): # IGNORE:C0111
 if __name__ == "__main__":
@@ -81,10 +81,19 @@ if __name__ == "__main__":
     # Setup argument parser
     parser = ArgumentParser(description="Generator for gwstats.json", formatter_class=RawDescriptionHelpFormatter)
     parser.add_argument("-o", "--output", dest="output", action="store", required=True, help="output filename")
+    parser.add_argument("-b", "--bwlimit", type=int, required=True, help="bwlimit in mbit/s")
+    parser.add_argument("-s", "--segments", type=int, required=True, help="number of segments to handle")
+    parser.add_argument("-d", "--debug", action="store", help="print debug/logging information")
 
     # Process arguments
     args = parser.parse_args()
+    if args.debug:
+        print(set logger to debug)
+        # TODO: enable logger
+        #logger.setLevel(logging.DEBUG)
+    bwlimit = args.bwlimit
+    segmentCount = args.segments
 
-    preference = getPreference()
-    data = genData(preference=preference)
+    preference = getPreference(bwlimit)
+    data = genData(segmentCount, preference=preference)
     genJson(data,args.output)
