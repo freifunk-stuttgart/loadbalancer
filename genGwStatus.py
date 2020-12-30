@@ -62,7 +62,7 @@ def genData(segmentCount, preference=0):
     data["timestamp"] = int(time.time())
 
     segments = {}
-    for s in range(1,segmentCount):
+    for s in range(1,segmentCount+1):
         segments[s] = {}
         segments[s]["preference"] = preference
         segments[s]["dnsactive"] = getDnsStatus(s)
@@ -88,7 +88,7 @@ if __name__ == "__main__":
     # Process arguments
     args = parser.parse_args()
     if args.debug:
-        print(set logger to debug)
+        print("set logger to debug")
         # TODO: enable logger
         #logger.setLevel(logging.DEBUG)
     bwlimit = args.bwlimit
