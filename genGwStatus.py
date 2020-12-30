@@ -88,9 +88,7 @@ if __name__ == "__main__":
     # Process arguments
     args = parser.parse_args()
     if args.debug:
-        print("set logger to debug")
-        # TODO: enable logger
-        #logger.setLevel(logging.DEBUG)
+        logger.setLevel(logging.DEBUG)
     bwlimit = args.bwlimit
     segmentCount = args.segments
 
