@@ -53,14 +53,36 @@ class gwLoadBalancerTestCase(unittest.TestCase):
         expextedGws = ["gw07n01","gw04n01","gw05n03","gw04n03","gw09n02","gw01n03"]
         self.assertEqual(list(gws.keys()), expextedGws)
 
+    def test_addSelfToGws(self):
+        lb = GwLoadBalancer()
+        gws = {}
+        lb.addSelfToGws(gws)
+        self.assertEqual(gws,{"gw01n03": {}})
+
+    def test_getGwStatusUrl(self):
+        lb = GwLoadBalancer()
+        url = lb.getGwStatusUrl("gw01n03")
+        self.assertEqual("http://10.191.255.13/data/gwstatus.json",url)
+        lb.use_backbone = False
+        url = lb.getGwStatusUrl("gw01n03")
+        self.assertEqual("http://gw01n03.gw.freifunk-stuttgart.de/data/gwstatus.json",url)
+
     def test_getGwStatus(self):
         lb = GwLoadBalancer()
         lb.use_backbone = False
         data = lb.getGwStatus("gw01n03")
         self.assertEqual(data["version"],"1")
 
-    def test_addSelfToGws(self):
+    def test_getAllStatus(self):
         lb = GwLoadBalancer()
-        gws = {}
-        lb.addSelfToGws(gws)
-        self.assertEqual(gws,{"gw01n03": {}})
+        lb.use_backbone = False
+        lb.getAllStatus({"gw01n03": {}})
+        #self.assertEqual(lb.status["segments"]["gw01n03"]["1"]["preference"],19)
+        #self.assertIn("preference",lb.status["1"]["gw01n03"]["1"])
+
+    def test_printStatus(self):
+        lb = GwLoadBalancer()
+        lb.use_backbone = False
+        lb.getAllStatus({"gw01n03": {}})
+        lb.status({})
+        lb.printStatus()

@@ -18,6 +18,7 @@ logging.basicConfig(level=logging.DEBUG)
 class GwLoadBalancer:
     def __init__(self):
         self.use_backbone = True
+        self.status = None
     def getAvailableGwFromDns(self):
         cmd = "/usr/bin/dig -t axfr gw.freifunk-stuttgart.de @dns1.lihas.de"
         zone = subprocess.check_output(cmd.split(" ")).decode("utf-8")
@@ -83,18 +84,22 @@ class GwLoadBalancer:
         gws = self.addSelfToGws(gws)
         return gws
 
-    def getAllStatus(self,gws):
-        for gw in gws.keys():
-            gws[gw] = self.getGwStatus(gw)
+    def addSelfToGws(self,gws):
+        localhost = socket.gethostname()
+        if not localhost.startswith("gw"):
+            localhost = "gw01n03"
+        gws[localhost] = {}
         return gws
 
-    def getGwStatus(self,hostname):
+    def getGwStatusUrl(self,gw):
         if self.use_backbone:
-            fqdn = self.getIpFromGw(hostname)
+            fqdn = self.getIpFromGw(gw)
         else:
-            fqdn = "%s.gw.freifunk-stuttgart.de"%(hostname)
+            fqdn = "%s.gw.freifunk-stuttgart.de"%(gw)
+        return 'http://%s/data/gwstatus.json'%(fqdn)
 
-        url = 'http://%s/data/gwstatus.json'%(fqdn)
+    def getGwStatus(self, gw):
+        url = self.getGwStatusUrl(gw)
         try:
             r = requests.get(url, timeout=1)
         except Exception as e:
@@ -102,17 +107,30 @@ class GwLoadBalancer:
             return {}
 
         if r.status_code == 404 or r.status_code == 503:
-            print("Could not get Data for %s"%(hostname))
+            print("Could not get Data for %s" % (gw))
             return {}
-
         text = r.text
         try:
             data = json.loads(text)
         except:
-            print("Error while loading json from %s with code %i"%(hostname,r.status_code))
+            print("Error while loading json from %s with code %i" % (gw, r.status_code))
             raise
         return data
 
+    def getAllStatus(self,gws):
+        self.status = {}
+        for gw in gws.keys():
+            status = self.getGwStatus(gw)
+            for segment in status["segments"]:
+                if segment not in self.status:
+                    self.status[segment] = {}
+                self.status[segment][gw] = status["segments"][segment]
+
+    def printStatus(self):
+        print ("Seg | GW      | Pref")
+        for (segment,segmentdata) in self.status.items():
+            for (gw,gwdata) in segmentdata.items():
+                print("%3s | %s | %s"%(segment,gw,gwdata["preference"]))
 
     def getPrefPerSegment(self,gws):
         segments = {}
@@ -123,7 +141,6 @@ class GwLoadBalancer:
                     if s not in segments:
                         segments[s] = {}
                     segments[s][gw.split(".")[0]] = g["segments"][s]
-
         return segments
 
     def getActiveGw(self,gws):
@@ -138,7 +155,6 @@ class GwLoadBalancer:
         zone = subprocess.check_output(cmd.split(" ")).decode("utf-8")
         segments = {}
         p = re.compile('gw0[0-9]s[0-6][0-9]\.gw\.freifunk-stuttgart\.de')
-
         for line in zone.split("\n"):
             m = p.match(line)
             if m != None:
@@ -168,13 +184,6 @@ class GwLoadBalancer:
             else:
                 pass
                 #print("No change needed for segment %s"%(segment))
-
-    def addSelfToGws(self,gws):
-        localhost = socket.gethostname()
-        if not localhost.startswith("gw"):
-            localhost = "gw01n03"
-        gws[localhost] = {}
-        return gws
 
 if __name__ == '__main__':
     localhost = socket.gethostname()
