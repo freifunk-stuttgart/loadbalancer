@@ -9,6 +9,7 @@ import os
 import time
 import json
 import subprocess
+import logger
 
 from argparse import ArgumentParser
 from argparse import RawDescriptionHelpFormatter
@@ -83,7 +84,7 @@ if __name__ == "__main__":
     parser.add_argument("-o", "--output", dest="output", action="store", required=True, help="output filename")
     parser.add_argument("-b", "--bwlimit", type=int, required=True, help="bwlimit in mbit/s")
     parser.add_argument("-s", "--segments", type=int, required=True, help="number of segments to handle")
-    parser.add_argument("-d", "--debug", action="store", help="print debug/logging information")
+    parser.add_argument("-d", "--debug", action="store_true", help="print debug/logging information")
 
     # Process arguments
     args = parser.parse_args()
