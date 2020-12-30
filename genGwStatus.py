@@ -35,7 +35,7 @@ class CLIError(Exception):
 
 
 def getPeak():
-    vnstat = json.loads(subprocess.check_output(["/usr/bin/vnstat", "-h", "--json"]).decode('utf-8'))
+    vnstat = json.loads(subprocess.check_output(["/usr/bin/vnstat", "-h", "--json","--iface",iface]).decode('utf-8'))
     #with open("/home/leonard/freifunk/FfsScripts/vnstat.json","r") as fp:
     #    vnstat = json.load(fp)
     hours = vnstat["interfaces"][0]["traffic"]["hours"]
@@ -84,6 +84,7 @@ if __name__ == "__main__":
     parser.add_argument("-o", "--output", dest="output", action="store", required=True, help="output filename")
     parser.add_argument("-b", "--bwlimit", type=int, required=True, help="bwlimit in mbit/s")
     parser.add_argument("-s", "--segments", type=int, required=True, help="number of segments to handle")
+    parser.add_argument("-i", "--iface", type=str, required=True, help="interface for vnstat")
     parser.add_argument("-d", "--debug", action="store_true", help="print debug/logging information")
 
     # Process arguments
@@ -92,6 +93,7 @@ if __name__ == "__main__":
         logging.basicConfig(level=logging.DEBUG)
     bwlimit = args.bwlimit
     segmentCount = args.segments
+    iface = args.iface
 
     preference = getPreference(bwlimit)
     data = genData(segmentCount, preference=preference)
