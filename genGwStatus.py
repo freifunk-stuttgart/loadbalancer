@@ -9,7 +9,7 @@ import os
 import time
 import json
 import subprocess
-import logger
+import logging
 
 from argparse import ArgumentParser
 from argparse import RawDescriptionHelpFormatter
@@ -89,7 +89,7 @@ if __name__ == "__main__":
     # Process arguments
     args = parser.parse_args()
     if args.debug:
-        logger.setLevel(logging.DEBUG)
+        logging.basicConfig(level=logging.DEBUG)
     bwlimit = args.bwlimit
     segmentCount = args.segments
 
