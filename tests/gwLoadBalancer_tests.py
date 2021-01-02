@@ -4,7 +4,7 @@ import tempfile
 from gwLoadBalancer import *
 
 
-class gwLoadBalancerTestCase(unittest.TestCase):
+class GwLoadBalancerTestCase(unittest.TestCase):
     def setUp(self):
         self.gwstatus = {
             "timestamp": 1609511049,
@@ -66,194 +66,194 @@ gw09s02.gw.freifunk-stuttgart.de. 300 IN AAAA	2001:8d8:1801:35f::92
         # all expected results assume that desiredGwPerSegment == 2
         self.assertEqual(2, lb.desiredGwPerSegment)
 
-    def test_dnsZoneTransfer(self):
+    def test_dns_zone_transfer(self):
         lb = GwLoadBalancer()
-        lb.dnsZoneTransfer()
+        lb.dns_zone_transfer()
         self.assertIsNot("", lb.zoneData)
 
-    def test_getAvailableGwFromDns(self):
+    def test_get_available_gw_from_dns(self):
         lb = GwLoadBalancer()
         lb.zoneData = """gw01n03.gw.freifunk-stuttgart.de. 300 IN A	88.198.230.6
 gw01n03.gw.freifunk-stuttgart.de. 300 IN AAAA	2a01:4f8:190:5205:260:2fff:fe08:13cd
 """
-        lb.getAvailableGwFromDns()
+        lb.get_available_gw_from_dns()
         self.assertEqual({"gw01n03": {}}, lb.allGws)
 
-    def test_getIpFromGwAndNum(self):
+    def test_get_ip_from_gw_and_num(self):
         lb = GwLoadBalancer()
-        ip = lb.getIpFromGwAndNum(1, 3)
+        ip = lb.get_ip_from_gw_and_num(1, 3)
         self.assertEqual(ip, "10.191.255.13")
 
-    def test_getGwAndNumFromGw(self):
+    def test_get_gw_and_num_from_gw(self):
         lb = GwLoadBalancer()
-        (gw, num) = lb.getGwAndNumFromGw("gw01n03")
+        (gw, num) = lb.get_gw_and_num_from_gw("gw01n03")
         self.assertEqual(gw, 1)
         self.assertEqual(num, 3)
 
-    def test_getGwFromGwAndNum(self):
+    def test_get_gw_from_gw_and_num(self):
         lb = GwLoadBalancer()
-        self.assertEqual(lb.getGwFromGwAndNum(1, 3), "gw01n03")
+        self.assertEqual(lb.get_gw_from_gw_and_num(1, 3), "gw01n03")
 
-    def test_getIpFromGw(self):
+    def test_get_ip_from_gw(self):
         lb = GwLoadBalancer()
         self.assertEqual(lb.getIpFromGw("gw01n03"), "10.191.255.13")
 
-    def test_getGwNumFromBatctlLine(self):
+    def test_get_gw_num_from_batctl_line(self):
         lb = GwLoadBalancer()
         line = '  02:00:38:01:07:01 (255) 02:00:35:01:07:01 [      bb01]: 64.0/64.0 MBit'
         (gw, num) = lb.getGwNumFromBatctlLine(line)
         self.assertEqual(gw, 7)
         self.assertEqual(num, 1)
 
-    def test_getIpFromBatctlLine(self):
+    def test_get_ip_from_batctl_line(self):
         lb = GwLoadBalancer()
         line = '  02:00:38:01:07:01 (255) 02:00:35:01:07:01 [      bb01]: 64.0/64.0 MBit'
-        ip = lb.getIpFromBatctlLine(line)
+        ip = lb.get_ip_from_batctl_line(line)
         self.assertEqual(ip, "10.191.255.71")
 
-    def test_parseBatctlOutput(self):
+    def test_parse_batctl_output(self):
         lb = GwLoadBalancer()
         data = """  02:00:38:01:07:01 (255) 02:00:35:01:07:01 [      bb01]: 64.0/64.0 MBit
   02:00:35:01:04:01 (255) 02:00:35:01:04:01 [      bb01]: 64.0/64.0 MBit
   02:00:35:01:05:03 (255) 02:00:35:01:05:03 [      bb01]: 64.0/64.0 MBit
   02:00:38:01:04:03 (255) 02:00:35:01:04:03 [      bb01]: 64.0/64.0 MBit
   02:00:38:01:09:02 (255) 02:00:35:01:09:02 [      bb01]: 64.0/64.0 MBit"""
-        gws = lb.parseBatctlOutput(data)
+        gws = lb.parse_batctl_output(data)
         # expextedGws = ["10.191.255.71","10.191.255.41","10.191.255.53","10.191.255.43","10.191.255.92"]
         expextedGws = ["gw07n01", "gw04n01", "gw05n03", "gw04n03", "gw09n02"]
         self.assertEqual(expextedGws, list(lb.allGws.keys()))
 
-    def test_getAvailableGwFromBatctl(self):
+    def test_get_available_gw_from_batctl(self):
         lb = GwLoadBalancer()
-        lb.getAvailableGwFromBatctl()
+        lb.get_available_gw_from_batctl()
         expextedGws = ["gw07n01", "gw04n01", "gw05n03", "gw04n03", "gw09n02"]
         self.assertEqual(expextedGws, list(lb.allGws.keys()))
 
-    def test_addSelfToGws(self):
+    def test_add_self_to_gws(self):
         lb = GwLoadBalancer()
         lb.localhost = "gw01n03"
-        lb.addSelfToGws()
+        lb.add_self_to_gws()
         self.assertEqual({"gw01n03": {}}, lb.allGws)
 
-    def test_getGwStatusUrl(self):
+    def test_get_gw_status_url(self):
         lb = GwLoadBalancer()
-        url = lb.getGwStatusUrl("gw01n03")
+        url = lb.get_gw_status_url("gw01n03")
         self.assertEqual("http://10.191.255.13/data/gwstatus.json", url)
         lb.use_backbone = False
-        url = lb.getGwStatusUrl("gw01n03")
+        url = lb.get_gw_status_url("gw01n03")
         self.assertEqual("http://gw01n03.gw.freifunk-stuttgart.de/data/gwstatus.json", url)
 
-    def test_getGwStatus(self):
+    def test_get_gw_status(self):
         lb = GwLoadBalancer()
         lb.use_backbone = False
-        data = lb.getGwStatus("gw01n03")
+        data = lb.get_gw_status("gw01n03")
         self.assertEqual(data["version"], "1")
 
-    def test_validateGwStatus(self):
+    def test_validate_gw_status(self):
         lb = GwLoadBalancer()
         lb.zoneData = self.zoneData
-        lb.getIpToGwLookup()
+        lb.get_ip_to_gw_lookup()
 
         self.gwstatus["timestamp"] = int(time.time()) - 60 * 60
-        status = lb.validateGwStatus("gw01n03", self.gwstatus)
+        status = lb.validate_gw_status("gw01n03", self.gwstatus)
         self.assertFalse(status)
 
         self.gwstatus["timestamp"] = int(time.time())
-        status = lb.validateGwStatus("gw01n03", self.gwstatus)
+        status = lb.validate_gw_status("gw01n03", self.gwstatus)
         self.assertTrue(status)
 
         self.gwstatus["segments"]["1"]["dnsactive"] = 0
-        status = lb.validateGwStatus("gw01n03", self.gwstatus)
+        status = lb.validate_gw_status("gw01n03", self.gwstatus)
         self.assertFalse(status)
 
         self.gwstatus["segments"]["1"]["dnsactive"] = 1
         self.gwstatus["segments"]["2"]["dnsactive"] = 1
-        status = lb.validateGwStatus("gw01n03", self.gwstatus)
+        status = lb.validate_gw_status("gw01n03", self.gwstatus)
         self.assertFalse(status)
 
         self.gwstatus["segments"]["1"]["dnsactive"] = 1
         self.gwstatus["segments"]["2"]["dnsactive"] = 0
-        status = lb.validateGwStatus("gw01n03", self.gwstatus)
+        status = lb.validate_gw_status("gw01n03", self.gwstatus)
         self.assertTrue(status)
 
-    def test_getAllStatus(self):
+    def test_get_all_status(self):
         # this test fetches live data from gw01n03!!!
         lb = GwLoadBalancer()
         lb.use_backbone = False
         gw = "gw01n03"
         lb.allGws = {gw: {}}
-        lb.getAllStatus()
+        lb.get_all_status()
         self.assertIn("1", lb.allGws[gw]["segments"])
         self.assertIn("2", lb.allGws[gw]["segments"])
 
-    def test_getStatus(self):
+    def test_get_status(self):
         lb = GwLoadBalancer()
         gw = "gw01n03"
         lb.zoneData = self.zoneData
-        lb.getIpToGwLookup()
+        lb.get_ip_to_gw_lookup()
         lb.allGws[gw] = self.gwstatus
-        lb.getStatus()
+        lb.get_status()
         self.assertIn(gw, lb.status["1"])
 
-    def test_getAllGwsInSegment(self):
+    def test_get_all_gws_in_segment(self):
         lb = GwLoadBalancer()
         lb.status = self.status
-        all = lb.getAllGwsInSegment(segment="1")
+        all = lb.get_all_gws_in_segment(segment="1")
         self.assertEqual(["gw01n03", "gw04n03", "gw05n03", "gw07n01", "gw09n02"], all)
-        all = lb.getAllGwsInSegment(segment="2")
+        all = lb.get_all_gws_in_segment(segment="2")
         self.assertEqual(["gw01n03", "gw04n03", "gw05n03", "gw07n01", "gw09n02"], all)
 
-    def test_getBestGwForSegment(self):
+    def test_get_best_gw_for_segment(self):
         lb = GwLoadBalancer()
         lb.status = self.status
-        best = lb.getBestGwForSegment(segment="1")
+        best = lb.get_best_gw_for_segment(segment="1")
         self.assertEqual(["gw07n01", "gw09n02"], best)
-        best = lb.getBestGwForSegment(segment="2")
+        best = lb.get_best_gw_for_segment(segment="2")
         self.assertEqual(["gw07n01", "gw09n02"], best)
 
-    def test_getGwsWithDnsactiveEqualTo(self):
+    def test_get_gws_with_dnsactive_equal_to(self):
         lb = GwLoadBalancer()
         lb.status = self.status
-        active = lb.getGwsWithDnsactiveEqualTo(segment="1", desiredStatus=1)
+        active = lb.get_gws_with_dnsactive_equal_to(segment="1", desiredStatus=1)
         self.assertEqual(["gw01n03", "gw05n03", "gw07n01"], active)
-        inactive = lb.getGwsWithDnsactiveEqualTo(segment="1", desiredStatus=0)
+        inactive = lb.get_gws_with_dnsactive_equal_to(segment="1", desiredStatus=0)
         self.assertEqual(["gw04n03", "gw09n02"], inactive)
 
-        active = lb.getGwsWithDnsactiveEqualTo(segment="2", desiredStatus=1)
+        active = lb.get_gws_with_dnsactive_equal_to(segment="2", desiredStatus=1)
         self.assertEqual(["gw04n03", "gw05n03", "gw07n01", "gw09n02"], active)
-        inactive = lb.getGwsWithDnsactiveEqualTo(segment="2", desiredStatus=0)
+        inactive = lb.get_gws_with_dnsactive_equal_to(segment="2", desiredStatus=0)
         self.assertEqual(["gw01n03"], inactive)
 
-        active = lb.getGwsWithDnsactiveEqualTo(segment="2", desiredStatus=1)
+        active = lb.get_gws_with_dnsactive_equal_to(segment="2", desiredStatus=1)
         self.assertEqual(["gw04n03", "gw05n03", "gw07n01", "gw09n02"], active)
-        inactive = lb.getGwsWithDnsactiveEqualTo(segment="2", desiredStatus=0)
+        inactive = lb.get_gws_with_dnsactive_equal_to(segment="2", desiredStatus=0)
         self.assertEqual(["gw01n03"], inactive)
 
-    def test_getGwsThatHaveToBeAddedToDns(self):
+    def test_get_gws_that_have_to_be_added_to_dns(self):
         lb = GwLoadBalancer()
         lb.status = self.status
-        gwsThatHaveToBeAdded = lb.getGwsThatHaveToBeAddedToDns(segment="1")
+        gwsThatHaveToBeAdded = lb.get_gws_that_have_to_be_added_to_dns(segment="1")
         self.assertEqual(["gw09n02"], gwsThatHaveToBeAdded)
 
-        gwsThatHaveToBeAdded = lb.getGwsThatHaveToBeAddedToDns(segment="2")
+        gwsThatHaveToBeAdded = lb.get_gws_that_have_to_be_added_to_dns(segment="2")
         self.assertEqual([], gwsThatHaveToBeAdded)
 
-    def test_getGwsThatHaveToRemovedFromDns(self):
+    def test_get_gws_that_have_to_removed_from_dns(self):
         lb = GwLoadBalancer()
         lb.status = self.status
-        gwsThatHaveToBeRemoved = lb.getGwsThatHaveToRemovedFromDns(segment="1")
+        gwsThatHaveToBeRemoved = lb.get_gws_that_have_to_removed_from_dns(segment="1")
         self.assertEqual(["gw01n03", "gw05n03"], gwsThatHaveToBeRemoved)
 
-        gwsThatHaveToBeRemoved = lb.getGwsThatHaveToRemovedFromDns(segment="2")
+        gwsThatHaveToBeRemoved = lb.get_gws_that_have_to_removed_from_dns(segment="2")
         self.assertEqual(["gw04n03", "gw05n03"], gwsThatHaveToBeRemoved)
 
-    def test_getResult(self):
+    def test_get_result(self):
         lb = GwLoadBalancer()
         lb.localhost = "gw01n03"
         lb.status = self.status
         lb.zoneData = self.zoneData
         lb.target = "gw01n03"
-        report = lb.getResult()
+        report = lb.get_result()
         expected = """GWs that have to be added in Segement 1 to dns: gw09n02
 GWs that have to be removed in Segement 2 from dns: gw04n03 gw05n03
 """
@@ -274,17 +274,17 @@ GWs that have to be removed in Segement 2 from dns: gw04n03 gw05n03
             self.assertIn(cmd, lb.commands_local)
 
         lb.target = "gw09n02"
-        report = lb.getResult()
+        report = lb.get_result()
         expected = \
             ['update add gw09s01.gw.freifunk-stuttgart.de. 300 A 212.227.213.45', \
              'update add gw09s01.gw.freifunk-stuttgart.de. 300 AAAA 2001:8d8:1801:35f::92']
         for cmd in expected:
             self.assertIn(cmd, lb.commands_local)
 
-    def test_getIpToGwLookup(self):
+    def test_get_ip_to_gw_lookup(self):
         lb = GwLoadBalancer()
         lb.zoneData = self.zoneData
-        lb.getIpToGwLookup()
+        lb.get_ip_to_gw_lookup()
         expected = \
             {'138.201.55.210': 'gw04n03',
              '163.172.12.135': 'gw07n01',
@@ -297,30 +297,30 @@ GWs that have to be removed in Segement 2 from dns: gw04n03 gw05n03
              '93.186.197.153': 'gw05n03'}
         self.assertEqual(expected, lb.reverseDnsEntries)
 
-    def test_getActiveGwPerSegmentFromDns(self):
+    def test_get_active_gw_per_segment_from_dns(self):
         lb = GwLoadBalancer()
         lb.zoneData = self.zoneData
-        lb.getIpToGwLookup()
-        active = lb.getActiveGwPerSegmentFromDns(segment="1")
+        lb.get_ip_to_gw_lookup()
+        active = lb.get_active_gw_per_segment_from_dns(segment="1")
         self.assertEqual(['gw01n03', 'gw05n03', 'gw07n01'], active)
-        active = lb.getActiveGwPerSegmentFromDns(segment="2")
+        active = lb.get_active_gw_per_segment_from_dns(segment="2")
         self.assertEqual(['gw04n03', 'gw05n03', 'gw07n01', 'gw09n02'], active)
 
-    def test_validateStatus(self):
+    def test_validate_status(self):
         lb = GwLoadBalancer()
         lb.zoneData = self.zoneData
         lb.status = self.status
-        lb.getIpToGwLookup()
+        lb.get_ip_to_gw_lookup()
 
-        result = lb.validateStatus()
+        result = lb.validate_status()
         self.assertTrue(result)
 
         temp = lb.status["1"].pop("gw07n01")
-        result = lb.validateStatus()
+        result = lb.validate_status()
         self.assertTrue(result)
         lb.status["1"]["gw07n01"] = temp
 
-        result = lb.validateStatus()
+        result = lb.validate_status()
 
     def test_get_record_for_gw(self):
         lb = GwLoadBalancer()
@@ -345,12 +345,12 @@ GWs that have to be removed in Segement 2 from dns: gw04n03 gw05n03
         for entry in expected:
             self.assertIn(entry, lines)
 
-    def test_saveResult(self):
+    def test_save_result(self):
         lb = GwLoadBalancer()
         lb.commands_local = []
         with tempfile.NamedTemporaryFile() as tf:
             fn = tf.name
-        lb.saveResult(fn)
+        lb.save_result(fn)
         self.assertTrue(os.path.isfile(fn))
         with open(fn) as fp:
             content = fp.read()
@@ -360,7 +360,7 @@ GWs that have to be removed in Segement 2 from dns: gw04n03 gw05n03
         lb.commands_local = ["line1", "line2"]
         with tempfile.NamedTemporaryFile() as tf:
             fn = tf.name
-        lb.saveResult(fn)
+        lb.save_result(fn)
         self.assertTrue(os.path.isfile(fn))
         with open(fn) as fp:
             content = fp.read().split("\n")

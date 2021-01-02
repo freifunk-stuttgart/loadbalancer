@@ -30,11 +30,11 @@ class GwLoadBalancer:
         self.segments = 32
         self.maxAgeInSeconds = 60 * 15  # 15 minutes
 
-    def dnsZoneTransfer(self):
+    def dns_zone_transfer(self):
         cmd = "/usr/bin/dig -t axfr gw.freifunk-stuttgart.de @dns1.lihas.de"
         self.zoneData = subprocess.check_output(cmd.split(" ")).decode("utf-8")
 
-    def getAvailableGwFromDns(self):
+    def get_available_gw_from_dns(self):
         gw = self.allGws
         p = re.compile('(gw0[0-9]n0[0-9])\.gw\.freifunk-stuttgart\.de')
         for line in self.zoneData.split("\n"):
@@ -43,22 +43,22 @@ class GwLoadBalancer:
                 gw[m.group(1)] = {}
         self.allGws = gw
 
-    def getIpFromGwAndNum(self, gw, num):
+    def get_ip_from_gw_and_num(self, gw, num):
         return "10.191.255.%i%i" % (gw, num)
 
-    def getGwAndNumFromGw(self, gw):
+    def get_gw_and_num_from_gw(self, gw):
         p = re.compile("gw([0-9]{2})n([0-9]{2})")
         match = p.match(gw)
         gw = int(match.group(1))
         num = int(match.group(2))
         return (gw, num)
 
-    def getGwFromGwAndNum(self, gw, num):
+    def get_gw_from_gw_and_num(self, gw, num):
         return "gw%sn%s" % (str(gw).zfill(2), str(num).zfill(2))
 
     def getIpFromGw(self, gw):
-        (gw, num) = self.getGwAndNumFromGw(gw)
-        return self.getIpFromGwAndNum(gw, num)
+        (gw, num) = self.get_gw_and_num_from_gw(gw)
+        return self.get_ip_from_gw_and_num(gw, num)
 
     def getGwNumFromBatctlLine(self, line):
         p = re.compile(" *02:[0-9]{2}:[0-9]{2}:[0-9]{2}:[0-9]([0-9]):[0-9]([0-9]).*")
@@ -67,19 +67,19 @@ class GwLoadBalancer:
         num = int(match.group(2))
         return (gw, num)
 
-    def getIpFromBatctlLine(self, line):
+    def get_ip_from_batctl_line(self, line):
         (gw, num) = self.getGwNumFromBatctlLine(line)
-        return self.getIpFromGwAndNum(gw, num)
+        return self.get_ip_from_gw_and_num(gw, num)
 
-    def parseBatctlOutput(self, data):
+    def parse_batctl_output(self, data):
         # example:
         #  02:00:38:01:07:01 (255) 02:00:35:01:07:01 [      bb01]: 64.0/64.0 MBit
         for line in data.strip().split("\n"):
             (gw, num) = self.getGwNumFromBatctlLine(line)
-            gw = self.getGwFromGwAndNum(gw, num)
+            gw = self.get_gw_from_gw_and_num(gw, num)
             self.allGws[gw] = {}
 
-    def getAvailableGwFromBatctl(self):
+    def get_available_gw_from_batctl(self):
         output = ""
         for i in range(1, self.segments + 1):
             seg = ("%i" % (i)).zfill(2)
@@ -90,22 +90,22 @@ class GwLoadBalancer:
             else:
                 with open("tests/batctl-gwl.txt", "r") as fp:
                     output += fp.read()
-        self.parseBatctlOutput(output)
-        self.addSelfToGws()
+        self.parse_batctl_output(output)
+        self.add_self_to_gws()
 
-    def addSelfToGws(self):
+    def add_self_to_gws(self):
         if self.localhost.startswith("gw"):
             self.allGws[self.localhost] = {}
 
-    def getGwStatusUrl(self, gw):
+    def get_gw_status_url(self, gw):
         if self.use_backbone:
             fqdn = self.getIpFromGw(gw)
         else:
             fqdn = "%s.gw.freifunk-stuttgart.de" % (gw)
         return 'http://%s/data/gwstatus.json' % (fqdn)
 
-    def getGwStatus(self, gw):
-        url = self.getGwStatusUrl(gw)
+    def get_gw_status(self, gw):
+        url = self.get_gw_status_url(gw)
         try:
             r = requests.get(url, timeout=1)
         except Exception as e:
@@ -125,7 +125,7 @@ class GwLoadBalancer:
             raise
         return data
 
-    def validateGwStatus(self, gw, status):
+    def validate_gw_status(self, gw, status):
         local_timestamp = time.time()
         result = True
         if (local_timestamp - status["timestamp"]) > self.maxAgeInSeconds:
@@ -133,7 +133,7 @@ class GwLoadBalancer:
             result = False
         for (segment, data) in status["segments"].items():
             dnsactive = data["dnsactive"]
-            active = self.getActiveGwPerSegmentFromDns(segment=segment)
+            active = self.get_active_gw_per_segment_from_dns(segment=segment)
             if dnsactive == 1 and gw not in active:
                 logging.warning(
                     "DNS status for %s in segment %s: Reports dnsactive==1 but is not active!" % (gw, segment))
@@ -143,15 +143,15 @@ class GwLoadBalancer:
                 result = False
         return result
 
-    def getAllStatus(self):
+    def get_all_status(self):
         for gw in self.allGws.keys():
-            self.allGws[gw] = self.getGwStatus(gw)
+            self.allGws[gw] = self.get_gw_status(gw)
 
-    def getStatus(self):
+    def get_status(self):
         for (gw, gwstatus) in self.allGws.items():
             if gwstatus == {}:
                 continue
-            if not self.validateGwStatus(gw, gwstatus):
+            if not self.validate_gw_status(gw, gwstatus):
                 gwstatus = {}
                 continue
             for segment in gwstatus["segments"]:
@@ -159,34 +159,34 @@ class GwLoadBalancer:
                     self.status[segment] = {}
                 self.status[segment][gw] = gwstatus["segments"][segment]
 
-    def getAllGwsInSegment(self, segment):
+    def get_all_gws_in_segment(self, segment):
         segmentstatus = self.status[segment]
         return sorted((gw for gw in segmentstatus))
 
-    def getBestGwForSegment(self, segment):
+    def get_best_gw_for_segment(self, segment):
         segmentstatus = self.status[segment]
         result = sorted(((segmentstatus[gw]["preference"], gw) for gw in segmentstatus), reverse=True)[
                  0:self.desiredGwPerSegment]
         return sorted(x[1] for x in result)
 
-    def getGwsWithDnsactiveEqualTo(self, segment, desiredStatus):
+    def get_gws_with_dnsactive_equal_to(self, segment, desiredStatus):
         segmentstatus = self.status[segment]
         return sorted((gw for gw in segmentstatus if segmentstatus[gw]["dnsactive"] == desiredStatus))
 
-    def getGwsThatHaveToBeAddedToDns(self, segment):
-        gwsThatHaveToBeInDns = set(self.getBestGwForSegment(segment))
-        gwsNotInDns = set(self.getGwsWithDnsactiveEqualTo(segment, 0))
+    def get_gws_that_have_to_be_added_to_dns(self, segment):
+        gwsThatHaveToBeInDns = set(self.get_best_gw_for_segment(segment))
+        gwsNotInDns = set(self.get_gws_with_dnsactive_equal_to(segment, 0))
         gwsThatHaveToBeAddedToDns = (gwsThatHaveToBeInDns.intersection(gwsNotInDns))
         return sorted(gwsThatHaveToBeAddedToDns)
 
-    def getGwsThatHaveToRemovedFromDns(self, segment):
-        gwsThatHaveToBeInDns = set(self.getBestGwForSegment(segment=segment))
-        gwsInDns = set(self.getGwsWithDnsactiveEqualTo(segment=segment, desiredStatus=1))
-        allGws = self.getAllGwsInSegment(segment=segment)
+    def get_gws_that_have_to_removed_from_dns(self, segment):
+        gwsThatHaveToBeInDns = set(self.get_best_gw_for_segment(segment=segment))
+        gwsInDns = set(self.get_gws_with_dnsactive_equal_to(segment=segment, desiredStatus=1))
+        allGws = self.get_all_gws_in_segment(segment=segment)
         gwsThatHaveNotToBeInDns = set(allGws).symmetric_difference(gwsThatHaveToBeInDns).intersection(gwsInDns)
         return sorted(gwsThatHaveNotToBeInDns)
 
-    def getResult(self):
+    def get_result(self):
         result = ""
         self.commands_all = []
         self.commands_local = []
@@ -195,8 +195,8 @@ class GwLoadBalancer:
         else:
             target = self.localhost
         for segment in self.status:
-            gwsThatHaveToBeAddedToDns = self.getGwsThatHaveToBeAddedToDns(segment)
-            getGwsThatHaveToRemovedFromDns = self.getGwsThatHaveToRemovedFromDns(segment)
+            gwsThatHaveToBeAddedToDns = self.get_gws_that_have_to_be_added_to_dns(segment)
+            getGwsThatHaveToRemovedFromDns = self.get_gws_that_have_to_removed_from_dns(segment)
             if len(gwsThatHaveToBeAddedToDns) > 0:
                 result += "GWs that have to be added in Segement %s to dns: %s\n" % (
                     segment, " ".join(gwsThatHaveToBeAddedToDns))
@@ -218,7 +218,7 @@ class GwLoadBalancer:
                 result = "All is fine!"
         return result
 
-    def getIpToGwLookup(self):
+    def get_ip_to_gw_lookup(self):
         self.reverseDnsEntries = {}
         p1 = re.compile('(gw0[0-9]n0[0-9])\.gw\.freifunk-stuttgart\.de\. [0-9]+ IN A*\t(.*)')
         for line in self.zoneData.split("\n"):
@@ -228,7 +228,7 @@ class GwLoadBalancer:
                 ip = m.group(2)
                 self.reverseDnsEntries[ip] = hostname
 
-    def getActiveGwPerSegmentFromDns(self, segment):
+    def get_active_gw_per_segment_from_dns(self, segment):
         gws = []
         zone = self.zoneData
         segments = {}
@@ -249,11 +249,11 @@ class GwLoadBalancer:
                         gws.append(gw)
         return gws
 
-    def validateStatus(self):
+    def validate_status(self):
         result = True
         for (segment, data) in self.status.items():
-            activeGw = set(self.getGwsWithDnsactiveEqualTo(segment=segment, desiredStatus=1))
-            activeGwDns = set(self.getActiveGwPerSegmentFromDns(segment=segment))
+            activeGw = set(self.get_gws_with_dnsactive_equal_to(segment=segment, desiredStatus=1))
+            activeGwDns = set(self.get_active_gw_per_segment_from_dns(segment=segment))
             if activeGw != activeGwDns:
                 logging.warning("Segment %s setup is not as expected: %s vs. %s" % (segment, activeGw, activeGwDns))
             if not activeGw.issubset(activeGwDns):
@@ -283,23 +283,23 @@ class GwLoadBalancer:
         return lines
 
     def run(self):
-        self.dnsZoneTransfer()
-        self.getIpToGwLookup()
+        self.dns_zone_transfer()
+        self.get_ip_to_gw_lookup()
         localhost = socket.gethostname()
         if localhost.startswith("gw"):
-            self.getAvailableGwFromBatctl()
+            self.get_available_gw_from_batctl()
         else:
             self.use_backbone = False
-            self.getAvailableGwFromDns()
-        self.getAllStatus()
-        self.getStatus()
-        if not self.validateStatus():
+            self.get_available_gw_from_dns()
+        self.get_all_status()
+        self.get_status()
+        if not self.validate_status():
             logging.error("Status is not consitent, bye!")
             sys.exit(1)
-        report = self.getResult()
+        report = self.get_result()
         logging.info(report)
 
-    def saveResult(self, output):
+    def save_result(self, output):
         with open(output, "w") as fp:
             fp.write(";generatet at %s\n" % (time.ctime()))
             if len(self.commands_local) > 0:
@@ -325,4 +325,4 @@ if __name__ == '__main__':
         lb.target = args.target
     lb.run()
     if args.output != None:
-        lb.saveResult(args.output)
+        lb.save_result(args.output)
