@@ -35,6 +35,7 @@ class CLIError(Exception):
 
 
 def getPeak():
+    logging.debug("Getting vnstat...")
     vnstat = json.loads(subprocess.check_output(["/usr/bin/vnstat", "-h", "--json","--iface",iface]).decode('utf-8'))
     #with open("/home/leonard/freifunk/FfsScripts/vnstat.json","r") as fp:
     #    vnstat = json.load(fp)
@@ -43,7 +44,9 @@ def getPeak():
     for h in hours:
         if h["tx"] > peak:
             peak = h["tx"]
-    return peak/1024/3600*8
+    peak_mbits = peak/1024/3600*8
+    logging.debug("Found peak '{}'...".format(peak_mbits))
+    return peak_mbits
 
 def getDnsStatus(segment):
     hostname = "gw01s%02i.gw.freifunk-stuttgart.de"%(segment)
