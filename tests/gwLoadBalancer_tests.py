@@ -256,26 +256,29 @@ gw01n03.gw.freifunk-stuttgart.de. 300 IN AAAA	2a01:4f8:190:5205:260:2fff:fe08:13
         lb.target = "gw01n03"
         report = lb.getResult()
         expected = """GWs that have to be added in Segement 1 to dns: gw09n02
-GWs that have to be removed in Segement 1 from dns: gw01n03 gw05n03
 GWs that have to be removed in Segement 2 from dns: gw04n03 gw05n03
 """
         self.assertEqual(expected,report)
         expected = [ \
             'update add gw09s01.gw.freifunk-stuttgart.de. 300 A 212.227.213.45', \
             'update add gw09s01.gw.freifunk-stuttgart.de. 300 AAAA 2001:8d8:1801:35f::92', \
-            'update delete gw01s01.gw.freifunk-stuttgart.de. 300 A 88.198.230.6', \
-            'update delete gw01s01.gw.freifunk-stuttgart.de. 300 AAAA 2a01:4f8:190:5205:260:2fff:fe08:13cd', \
-            'update delete gw05s01.gw.freifunk-stuttgart.de. 300 A 93.186.197.153', \
-            'update delete gw05s01.gw.freifunk-stuttgart.de. 300 AAAA 2001:4ba0:ffff:150::1', \
             'update delete gw04s02.gw.freifunk-stuttgart.de. 300 A 138.201.55.210',  \
             'update delete gw04s02.gw.freifunk-stuttgart.de. 300 AAAA 2a01:4f8:172:10ce::43', \
             'update delete gw05s02.gw.freifunk-stuttgart.de. 300 A 93.186.197.153', \
             'update delete gw05s02.gw.freifunk-stuttgart.de. 300 AAAA 2001:4ba0:ffff:150::1']
+
         for cmd in expected:
             self.assertIn(cmd, lb.commands_all)
         expected = \
-            [ 'update delete gw01s01.gw.freifunk-stuttgart.de. 300 A 88.198.230.6', \
-            'update delete gw01s01.gw.freifunk-stuttgart.de. 300 AAAA 2a01:4f8:190:5205:260:2fff:fe08:13cd']
+            []
+        for cmd in expected:
+            self.assertIn(cmd, lb.commands_local)
+
+        lb.target = "gw09n02"
+        report = lb.getResult()
+        expected = \
+            [ 'update add gw09s01.gw.freifunk-stuttgart.de. 300 A 212.227.213.45', \
+              'update add gw09s01.gw.freifunk-stuttgart.de. 300 AAAA 2001:8d8:1801:35f::92' ]
         for cmd in expected:
             self.assertIn(cmd, lb.commands_local)
 

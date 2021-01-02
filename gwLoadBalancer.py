@@ -203,7 +203,7 @@ class GwLoadBalancer:
                     self.commands_all += command
                     if gw == self.target:
                         self.commands_local += command
-            if len(getGwsThatHaveToRemovedFromDns) > 0:
+            if len(getGwsThatHaveToRemovedFromDns) > 0 and len(gwsThatHaveToBeAddedToDns) == 0:
                 result += "GWs that have to be removed in Segement %s from dns: %s\n"%(segment," ".join(getGwsThatHaveToRemovedFromDns))
                 for gw in getGwsThatHaveToRemovedFromDns:
                     command = self.gen_nsupdate(gw,segment,"delete")
