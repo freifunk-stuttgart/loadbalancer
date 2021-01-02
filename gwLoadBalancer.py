@@ -13,6 +13,7 @@ import socket
 import os
 import sys
 import time
+import argparse
 import logging
 
 logging.basicConfig(level=logging.DEBUG)
@@ -288,6 +289,17 @@ class GwLoadBalancer:
         report = self.getResult()
         print(report)
 
+    def saveResult(self,output):
+        with open(output,"w") as fp:
+            fp.write(self.commands_local)
+
+
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description="Generator for nsupdate commands", formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("-o", "--output", dest="output", action="store", required=False, help="output filename")
+    args = parser.parse_args()
+
     lb = GwLoadBalancer()
     lb.run()
+    if (args.output != None):
+        lb.saveResult(args.output)

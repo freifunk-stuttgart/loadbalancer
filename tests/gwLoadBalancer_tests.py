@@ -1,5 +1,6 @@
 import unittest
 import time
+import tempfile
 from gwLoadBalancer import *
 
 class gwLoadBalancerTestCase(unittest.TestCase):
@@ -341,3 +342,15 @@ GWs that have to be removed in Segement 2 from dns: gw04n03 gw05n03
              'update add gw01s02.gw.freifunk-stuttgart.de. 300 A 2a01:4f8:190:5205:260:2fff:fe08:13cd']
         for entry in expected:
             self.assertIn(entry,lines)
+
+    def test_saveResult(self):
+        lb = GwLoadBalancer()
+        lb.commands_local = "test"
+        with tempfile.NamedTemporaryFile() as tf:
+            fn = tf.name
+        lb.saveResult(fn)
+        self.assertTrue(os.path.isfile(fn))
+        with open(fn) as fp:
+            content = fp.read()
+        self.assertEqual(lb.commands_local,content)
+        os.remove(fn)
