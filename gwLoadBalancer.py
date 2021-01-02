@@ -60,9 +60,7 @@ class GwLoadBalancer:
         return self.getIpFromGwAndNum(gw,num)
 
     def getGwNumFromBatctlLine(self,line):
-        #alternative expression von are
-        #sed 's/^.*:0*\([0-9]\+\):0*\([0-9]\+\)$/10.191.255.\1\2/'
-        p = re.compile("\ *02:[0-9]{2}:[0-9]{2}:[0-9]{2}:[0-9]([0-9]):[0-9]([0-9]).*")
+        p = re.compile(" *02:[0-9]{2}:[0-9]{2}:[0-9]{2}:[0-9]([0-9]):[0-9]([0-9]).*")
         match = p.match(line)
         gw = int(match.group(1))
         num = int(match.group(2))
