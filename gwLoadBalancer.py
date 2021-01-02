@@ -86,7 +86,7 @@ class GwLoadBalancer:
             seg = ("%i"%(i)).zfill(2)
             BATCTL = "/usr/sbin/batctl"
             if os.path.isfile(BATCTL):
-                cmd = "%s -m bat%s gwl -H -n"%(seg)
+                cmd = "%s -m bat%s gwl -H -n"%(BATCTL,seg)
                 output += subprocess.check_output(cmd.split(" ")).decode("utf-8")
             else:
                 with open("tests/batctl-gwl.txt","r") as fp:
