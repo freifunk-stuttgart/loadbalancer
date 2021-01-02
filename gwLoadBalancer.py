@@ -10,6 +10,9 @@ import re
 import requests
 import json
 import socket
+import logging
+
+logging.basicConfig(level=logging.DEBUG)
 
 def getAvailableGw():
     cmd = "/usr/bin/dig -t axfr gw.freifunk-stuttgart.de @dns1.lihas.de"
@@ -32,6 +35,7 @@ def getAllStatus(gws):
 def getGwStatus(hostname):
     url = 'http://%s/data/gwstatus.json'%(hostname)
     try:
+        logging.debug("Downloading stats for {}".format(hostname))
         r = requests.get(url, timeout=1)
     except:
         return {}
@@ -43,7 +47,7 @@ def getGwStatus(hostname):
     try:
         data = json.loads(text)
     except:
-        print("Error while loading json from %s with code %i"%(hostname,r.status_code))
+        logging.error("Error while loading json from %s with code %i"%(hostname,r.status_code))
         raise
     return data
     
@@ -93,15 +97,15 @@ def decide(segments):
         
         s = segments[segment]
         dnsActive = len(dnsActivePerSegment[int(segment)])
-        #print("GWs DNS active in Segment %s: %i"%(segment,dnsActive))
-        #print("In Segment %s sind %i GWs aktiv"%(segment, getActiveGw(s)))
-        #print (s[localhost]["preference"])
+        logging.debug("GWs DNS active in Segment %s: %i"%(segment,dnsActive))
+        logging.debug("In Segment %s sind %i GWs aktiv"%(segment, getActiveGw(s)))
+        logging.debug(s[localhost]["preference"])
         preference = s[localhost]["preference"]
         dnsactive = s[localhost]["dnsactive"]
         if dnsactive and preference < 30:
-            print("Remove this gw from DNS for segment %s"%(segment))
+            logging.info("Remove this gw from DNS for segment %s"%(segment))
         elif (preference > 35 or dnsActive < 2)and not dnsactive:
-            print("Add this gw to DNS for segment %s"%(segment))
+            logging.info("Add this gw to DNS for segment %s"%(segment))
         else:
             pass 
             #print("No change needed for segment %s"%(segment))
