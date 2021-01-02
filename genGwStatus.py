@@ -10,6 +10,8 @@ import time
 import json
 import subprocess
 import logging
+import dns.zone
+import dns.query
 
 from argparse import ArgumentParser
 from argparse import RawDescriptionHelpFormatter
@@ -35,6 +37,7 @@ class CLIError(Exception):
 
 
 def getPeak():
+    logging.debug("Getting vnstat...")
     vnstat = json.loads(subprocess.check_output(["/usr/bin/vnstat", "-h", "--json","--iface",iface]).decode('utf-8'))
     #with open("/home/leonard/freifunk/FfsScripts/vnstat.json","r") as fp:
     #    vnstat = json.load(fp)
@@ -43,15 +46,21 @@ def getPeak():
     for h in hours:
         if h["tx"] > peak:
             peak = h["tx"]
-    return peak/1024/3600*8
+    peak_mbits = peak/1024/3600*8
+    logging.debug("Found peak '{}'...".format(peak_mbits))
+    return peak_mbits
 
-def getDnsStatus(segment):
-    hostname = "gw01s%02i.gw.freifunk-stuttgart.de"%(segment)
-    try:
-        subprocess.check_output(["/usr/bin/host",hostname,"dns1.lihas.de"])
-        return 1
-    except:
-        return 0
+class GatewayZone(object):
+    def __init__(self):
+        self._zone = dns.zone.from_xfr(dns.query.xfr('dns1.lihas.de', 'gw.freifunk-stuttgart.de'))
+
+    def getDnsStatus(self, gwid, segment):
+        hostname = "gw%02is%02i"%(gwid, segment)
+        try:
+            record = self._zone.find_node(hostname, create=False)
+            return 1
+        except:
+            return 0
 
 def getPreference(bwlimit):
     preference = int((bwlimit-getPeak()) / (bwlimit/100.))
@@ -63,10 +72,11 @@ def genData(segmentCount, preference=0):
     data["timestamp"] = int(time.time())
 
     segments = {}
+    gatewayZone = GatewayZone()
     for s in range(1,segmentCount+1):
         segments[s] = {}
         segments[s]["preference"] = preference
-        segments[s]["dnsactive"] = getDnsStatus(s)
+        segments[s]["dnsactive"] = gatewayZone.getDnsStatus(1, s)
 
     data["segments"] = segments
     return data
