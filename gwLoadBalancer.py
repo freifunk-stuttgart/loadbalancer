@@ -16,7 +16,7 @@ import time
 import argparse
 import logging
 
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.ERROR)
 
 class GwLoadBalancer:
     def __init__(self):
@@ -112,17 +112,17 @@ class GwLoadBalancer:
         except Exception as e:
             return {}
         if r.status_code == 404 or r.status_code == 503:
-            print("Could not get Data for %s" % (gw))
+            logging.info("Could not get Data for %s" % (gw))
             return {}
         text = r.text
         if len(text) == 0:
-            print("GW %s returns empty document"%(gw))
+            logging.warning("GW %s returns empty document"%(gw))
             return {}
         try:
             data = json.loads(text)
         except Exception as e:
-            print(e)
-            print("Error while loading json from %s with code %i" % (gw, r.status_code))
+            logging.warning(e)
+            logging.warning("Error while loading json from %s with code %i" % (gw, r.status_code))
             raise
         return data
 
@@ -130,16 +130,16 @@ class GwLoadBalancer:
         local_timestamp = time.time()
         result = True
         if (local_timestamp - status["timestamp"]) > self.maxAgeInSeconds:
-            print("Rejecting gwstatus from %s as it is too old!"%(gw))
+            logging.warning("Rejecting gwstatus from %s as it is too old!"%(gw))
             result = False
         for (segment,data) in status["segments"].items():
             dnsactive = data["dnsactive"]
             active = self.getActiveGwPerSegmentFromDns(segment = segment)
             if dnsactive == 1 and gw not in active:
-                print("DNS status for %s in segment %s: Reports dnsactive==1 but is not active!"%(gw,segment))
+                logging.warning("DNS status for %s in segment %s: Reports dnsactive==1 but is not active!"%(gw,segment))
                 result = False
             if dnsactive == 0 and gw in active:
-                print("DNS status for %s in segment %s: Reports dnsactive==0 but is active!"%(gw,segment))
+                logging.warning("DNS status for %s in segment %s: Reports dnsactive==0 but is active!"%(gw,segment))
                 result = False
         return result
 
@@ -240,7 +240,7 @@ class GwLoadBalancer:
                     try:
                         gw = self.reverseDnsEntries[ip]
                     except Exception as e:
-                        print("NO entry for GWCluster %s and IP %s"%(gwCluster,ip))
+                        logging.error("NO entry for GWCluster %s and IP %s"%(gwCluster,ip))
                         raise
                     if gw not in gws:
                         gws.append(gw)
@@ -252,10 +252,10 @@ class GwLoadBalancer:
             activeGw = set(self.getGwsWithDnsactiveEqualTo(segment = segment, desiredStatus = 1))
             activeGwDns = set(self.getActiveGwPerSegmentFromDns(segment = segment))
             if activeGw != activeGwDns:
-                print("WARNING: Segment %s setup is not as expected: %s vs. %s"%(segment,activeGw,activeGwDns))
+                logging.warning("Segment %s setup is not as expected: %s vs. %s"%(segment,activeGw,activeGwDns))
             if not activeGw.issubset(activeGwDns):
                 result = False
-                print("ERROR: Segment %s setup is wrong: %s vs. %s"%(segment,activeGw,activeGwDns))
+                logging.error("Segment %s setup is wrong: %s vs. %s"%(segment,activeGw,activeGwDns))
         return result
 
     def get_record_for_gw(self,gw,record):
@@ -291,10 +291,10 @@ class GwLoadBalancer:
         self.getAllStatus()
         self.getStatus()
         if not self.validateStatus():
-            print("Status is not consitent, bye!")
+            logging.error("Status is not consitent, bye!")
             sys.exit(1)
         report = self.getResult()
-        print(report)
+        logging.info(report)
 
     def saveResult(self,output):
         with open(output,"w") as fp:
@@ -310,9 +310,12 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Generator for nsupdate commands", formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("-o", "--output", dest="output", action="store", required=False, help="output filename")
     parser.add_argument("-t", "--target", dest="target", action="store", required=False, help="generate output for")
+    parser.add_argument("-v", "--verbose", action="store_true", help="print warning/info information")
     args = parser.parse_args()
 
     lb = GwLoadBalancer()
+    if args.verbose:
+        logging.basicConfig(level=logging.INFO)
     if args.target != None:
         lb.target = args.target
     lb.run()
