@@ -253,6 +253,7 @@ gw01n03.gw.freifunk-stuttgart.de. 300 IN AAAA	2a01:4f8:190:5205:260:2fff:fe08:13
         lb.localhost = "gw01n03"
         lb.status = self.status
         lb.zoneData = self.zoneData
+        lb.target = "gw01n03"
         report = lb.getResult()
         expected = """GWs that have to be added in Segement 1 to dns: gw09n02
 GWs that have to be removed in Segement 1 from dns: gw01n03 gw05n03
@@ -261,20 +262,20 @@ GWs that have to be removed in Segement 2 from dns: gw04n03 gw05n03
         self.assertEqual(expected,report)
         expected = [ \
             'update add gw09s01.gw.freifunk-stuttgart.de. 300 A 212.227.213.45', \
-            'update add gw09s01.gw.freifunk-stuttgart.de. 300 A 2001:8d8:1801:35f::92', \
+            'update add gw09s01.gw.freifunk-stuttgart.de. 300 AAAA 2001:8d8:1801:35f::92', \
             'update delete gw01s01.gw.freifunk-stuttgart.de. 300 A 88.198.230.6', \
-            'update delete gw01s01.gw.freifunk-stuttgart.de. 300 A 2a01:4f8:190:5205:260:2fff:fe08:13cd', \
+            'update delete gw01s01.gw.freifunk-stuttgart.de. 300 AAAA 2a01:4f8:190:5205:260:2fff:fe08:13cd', \
             'update delete gw05s01.gw.freifunk-stuttgart.de. 300 A 93.186.197.153', \
-            'update delete gw05s01.gw.freifunk-stuttgart.de. 300 A 2001:4ba0:ffff:150::1', \
+            'update delete gw05s01.gw.freifunk-stuttgart.de. 300 AAAA 2001:4ba0:ffff:150::1', \
             'update delete gw04s02.gw.freifunk-stuttgart.de. 300 A 138.201.55.210',  \
-            'update delete gw04s02.gw.freifunk-stuttgart.de. 300 A 2a01:4f8:172:10ce::43', \
+            'update delete gw04s02.gw.freifunk-stuttgart.de. 300 AAAA 2a01:4f8:172:10ce::43', \
             'update delete gw05s02.gw.freifunk-stuttgart.de. 300 A 93.186.197.153', \
-            'update delete gw05s02.gw.freifunk-stuttgart.de. 300 A 2001:4ba0:ffff:150::1']
+            'update delete gw05s02.gw.freifunk-stuttgart.de. 300 AAAA 2001:4ba0:ffff:150::1']
         for cmd in expected:
             self.assertIn(cmd, lb.commands_all)
         expected = \
             [ 'update delete gw01s01.gw.freifunk-stuttgart.de. 300 A 88.198.230.6', \
-            'update delete gw01s01.gw.freifunk-stuttgart.de. 300 A 2a01:4f8:190:5205:260:2fff:fe08:13cd']
+            'update delete gw01s01.gw.freifunk-stuttgart.de. 300 AAAA 2a01:4f8:190:5205:260:2fff:fe08:13cd']
         for cmd in expected:
             self.assertIn(cmd, lb.commands_local)
 
@@ -312,13 +313,13 @@ GWs that have to be removed in Segement 2 from dns: gw04n03 gw05n03
         result = lb.validateStatus()
         self.assertTrue(result)
 
-        lb.status["1"]["gw01n03"]["dnsactive"] = 0
-        result = lb.validateStatus()
-        self.assertFalse(result)
-
-        lb.status["1"]["gw01n03"]["dnsactive"] = 1
+        temp = lb.status["1"].pop("gw07n01")
         result = lb.validateStatus()
         self.assertTrue(result)
+        lb.status["1"]["gw07n01"] = temp
+
+        result = lb.validateStatus()
+
 
     def test_get_record_for_gw(self):
         lb = GwLoadBalancer()
@@ -339,18 +340,30 @@ GWs that have to be removed in Segement 2 from dns: gw04n03 gw05n03
         lines = lb.gen_nsupdate("gw01n03","2","add")
         expected = \
             ['update add gw01s02.gw.freifunk-stuttgart.de. 300 A 88.198.230.6', \
-             'update add gw01s02.gw.freifunk-stuttgart.de. 300 A 2a01:4f8:190:5205:260:2fff:fe08:13cd']
+             'update add gw01s02.gw.freifunk-stuttgart.de. 300 AAAA 2a01:4f8:190:5205:260:2fff:fe08:13cd']
         for entry in expected:
             self.assertIn(entry,lines)
 
     def test_saveResult(self):
         lb = GwLoadBalancer()
-        lb.commands_local = "test"
+        lb.commands_local = []
         with tempfile.NamedTemporaryFile() as tf:
             fn = tf.name
         lb.saveResult(fn)
         self.assertTrue(os.path.isfile(fn))
         with open(fn) as fp:
             content = fp.read()
-        self.assertEqual(lb.commands_local,content)
+        self.assertNotIn("send",content)
+        os.remove(fn)
+
+        lb.commands_local = ["line1","line2"]
+        with tempfile.NamedTemporaryFile() as tf:
+            fn = tf.name
+        lb.saveResult(fn)
+        self.assertTrue(os.path.isfile(fn))
+        with open(fn) as fp:
+            content = fp.read().split("\n")
+        self.assertEqual(lb.commands_local[0],content[1])
+        self.assertEqual(lb.commands_local[1],content[2])
+        self.assertEqual("send",content[3])
         os.remove(fn)

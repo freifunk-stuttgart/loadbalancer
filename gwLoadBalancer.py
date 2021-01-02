@@ -25,6 +25,7 @@ class GwLoadBalancer:
         self.desiredGwPerSegment = 2
         self.allGws = {}
         self.localhost = socket.gethostname()
+        self.target = self.localhost
         self.segments = 32
         self.maxAgeInSeconds = 60*15 # 15 minutes
 
@@ -188,6 +189,10 @@ class GwLoadBalancer:
         result = ""
         self.commands_all = []
         self.commands_local = []
+        if self.target != None:
+            target = self.target
+        else:
+            target = self.localhost
         for segment in self.status:
             gwsThatHaveToBeAddedToDns = self.getGwsThatHaveToBeAddedToDns(segment)
             getGwsThatHaveToRemovedFromDns = self.getGwsThatHaveToRemovedFromDns(segment)
@@ -196,14 +201,14 @@ class GwLoadBalancer:
                 for gw in gwsThatHaveToBeAddedToDns:
                     command = self.gen_nsupdate(gw,segment,"add")
                     self.commands_all += command
-                    if gw == self.localhost:
+                    if gw == self.target:
                         self.commands_local += command
             if len(getGwsThatHaveToRemovedFromDns) > 0:
                 result += "GWs that have to be removed in Segement %s from dns: %s\n"%(segment," ".join(getGwsThatHaveToRemovedFromDns))
                 for gw in getGwsThatHaveToRemovedFromDns:
                     command = self.gen_nsupdate(gw,segment,"delete")
                     self.commands_all += command
-                    if gw == self.localhost:
+                    if gw == self.target:
                         self.commands_local += command
 
             if len(result) ==0:
@@ -244,11 +249,13 @@ class GwLoadBalancer:
     def validateStatus(self):
         result = True
         for (segment,data) in self.status.items():
-            activeGw = self.getGwsWithDnsactiveEqualTo(segment = segment, desiredStatus = 1)
-            activeGwDns = self.getActiveGwPerSegmentFromDns(segment = segment)
+            activeGw = set(self.getGwsWithDnsactiveEqualTo(segment = segment, desiredStatus = 1))
+            activeGwDns = set(self.getActiveGwPerSegmentFromDns(segment = segment))
             if activeGw != activeGwDns:
+                print("WARNING: Segment %s setup is not as expected: %s vs. %s"%(segment,activeGw,activeGwDns))
+            if not activeGw.issubset(activeGwDns):
                 result = False
-                print("Segment %s setup is wrong: %s vs. %s"%(segment,activeGw,activeGwDns))
+                print("ERROR: Segment %s setup is wrong: %s vs. %s"%(segment,activeGw,activeGwDns))
         return result
 
     def get_record_for_gw(self,gw,record):
@@ -268,7 +275,7 @@ class GwLoadBalancer:
             ip = self.get_record_for_gw(gw,record_type)
             if ip != None:
                 s = "%ss%s"%(gw[0:4],segment.zfill(2))
-                line = "update %s %s.gw.freifunk-stuttgart.de. 300 A %s"%(cmd,s,ip)
+                line = "update %s %s.gw.freifunk-stuttgart.de. 300 %s %s"%(cmd,s,record_type,ip)
                 lines.append(line)
         return lines
 
@@ -291,15 +298,23 @@ class GwLoadBalancer:
 
     def saveResult(self,output):
         with open(output,"w") as fp:
-            fp.write(self.commands_local)
-
+            fp.write(";generatet at %s\n"%(time.ctime()))
+            if len(self.commands_local) > 0:
+                fp.write("\n".join(self.commands_local))
+                fp.write("\n")
+                fp.write("send\n")
+            else:
+                fp.write(";nothing to do here this time...\n")
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Generator for nsupdate commands", formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("-o", "--output", dest="output", action="store", required=False, help="output filename")
+    parser.add_argument("-t", "--target", dest="target", action="store", required=False, help="generate output for")
     args = parser.parse_args()
 
     lb = GwLoadBalancer()
+    if args.target != None:
+        lb.target = args.target
     lb.run()
-    if (args.output != None):
+    if args.output != None:
         lb.saveResult(args.output)
