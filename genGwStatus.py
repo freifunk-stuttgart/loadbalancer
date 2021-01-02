@@ -10,6 +10,8 @@ import time
 import json
 import subprocess
 import logging
+import dns.zone
+import dns.query
 
 from argparse import ArgumentParser
 from argparse import RawDescriptionHelpFormatter
@@ -48,13 +50,17 @@ def getPeak():
     logging.debug("Found peak '{}'...".format(peak_mbits))
     return peak_mbits
 
-def getDnsStatus(segment):
-    hostname = "gw01s%02i.gw.freifunk-stuttgart.de"%(segment)
-    try:
-        subprocess.check_output(["/usr/bin/host",hostname,"dns1.lihas.de"])
-        return 1
-    except:
-        return 0
+class GatewayZone(object):
+    def __init__(self):
+        self._zone = dns.zone.from_xfr(dns.query.xfr('dns1.lihas.de', 'gw.freifunk-stuttgart.de'))
+
+    def getDnsStatus(self, gwid, segment):
+        hostname = "gw%02is%02i"%(gwid, segment)
+        try:
+            record = self._zone.find_node(hostname, create=False)
+            return 1
+        except:
+            return 0
 
 def getPreference(bwlimit):
     preference = int((bwlimit-getPeak()) / (bwlimit/100.))
@@ -66,10 +72,11 @@ def genData(segmentCount, preference=0):
     data["timestamp"] = int(time.time())
 
     segments = {}
+    gatewayZone = GatewayZone()
     for s in range(1,segmentCount+1):
         segments[s] = {}
         segments[s]["preference"] = preference
-        segments[s]["dnsactive"] = getDnsStatus(s)
+        segments[s]["dnsactive"] = gatewayZone.getDnsStatus(1, s)
 
     data["segments"] = segments
     return data
