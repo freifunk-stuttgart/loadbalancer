@@ -34,6 +34,7 @@ if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("gwstatus_url_file", type=argparse.FileType("r"), help="File with one URL to gwstatus.json per line")
     ap.add_argument("--port", help="Listen Port", default=8000, type=int)
+    ap.add_argument("--addr", help="Listen Address, default all", default="")
     ap.add_argument("--update-interval", help="Update data every N seconds", default=300, type=int)
     args = ap.parse_args()
     logging.basicConfig(level=logging.DEBUG)
@@ -47,7 +48,7 @@ if __name__ == "__main__":
             ['gateway', 'segment'],
             registry=prometheus_registry
     )
-    prometheus.start_http_server(args.port, '', prometheus_registry)
+    prometheus.start_http_server(args.port, args.addr, prometheus_registry)
 
     while True:
         # first download status files to avoid blocking to long after clearing gauge
