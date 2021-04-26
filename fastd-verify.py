@@ -36,8 +36,8 @@ def GetGwPreference(StatusFile, Segment):
             StatusDict = json.load(JsonFile)
             Preference = int(StatusDict['segments'][str(Segment)]['preference'])
 
-            if Preference > 100:
-               Preference = 100
+            if Preference > 80:
+               Preference = 80
             elif Preference < 0:
                 Preference = 0
 
@@ -60,7 +60,7 @@ if __name__ == '__main__':
     else:
         if IsValidKey(args.keyfolder, os.environ['PEER_KEY'].lower()):
             Preference = GetGwPreference(args.gwstatus, int(os.environ['INTERFACE'][3:]))
-            time.sleep((100 - Preference) * 0.08)
+            time.sleep((80 - Preference) * 0.08)
             exit(0)
 
 exit(1)
