@@ -44,8 +44,15 @@ if __name__ == "__main__":
     ap.add_argument("--port", help="Listen Port", default=8000, type=int)
     ap.add_argument("--addr", help="Listen Address, default all", default="")
     ap.add_argument("--update-interval", help="Update data every N seconds", default=300, type=int)
+    ap.add_argument("--loglevel", help="Set the desired level of logging", default="warning", choices=["debug", "warning", "error"])
     args = ap.parse_args()
-    logging.basicConfig(level=logging.DEBUG)
+    
+    if args.loglevel == "debug":
+        logging.basicConfig(level=logging.DEBUG)
+    elif args.loglevel == "warning":
+        logging.basicConfig(level=logging.WARNING)
+    else:
+        logging.basicConfig(level=logging.ERROR)
 
     gwstatus_urls = read_gwstatus_urls(args.gwstatus_url_file)
 
