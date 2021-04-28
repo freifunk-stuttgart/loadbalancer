@@ -4,6 +4,8 @@ import requests
 from urllib.parse import urlparse
 import logging
 import time
+import sys
+import json
 
 def get_gw_name_from_url(url):
     parsed = urlparse(url)
@@ -26,8 +28,14 @@ def download_gw_status(gwstatus_urls):
             continue
 
         logging.debug("Fetching %s status data from '%s'", gw_name, url)
-        resp = requests.get(url)
-        status_dict[gw_name] = resp.json()
+        try:
+            resp = requests.get(url)
+            resp.raise_for_status()
+            status_dict[gw_name] = resp.json()
+        except KeyboardInterrupt as e:
+            raise e
+        except Exception as e:
+            logging.error("Error fetching status data from %s: '%s'", url, e)
     return status_dict
 
 if __name__ == "__main__":
@@ -56,8 +64,13 @@ if __name__ == "__main__":
 
         preference_gauge.clear()
         for gw_name, status_json in status_jsons.items():
-            for segment_number, segment_status in status_json["segments"].items():
-                preference_gauge.labels(gateway=gw_name, segment=segment_number).set(segment_status["preference"])
+            try:
+                for segment_number, segment_status in status_json["segments"].items():
+                    preference_gauge.labels(gateway=gw_name, segment=segment_number).set(segment_status["preference"])
+            except KeyboardInterrupt as e:
+                raise e
+            except Exception as e:
+                logging.error("Error exporting preference for %s: %s", gw_name, e)
         time.sleep(args.update_interval)
 
 
