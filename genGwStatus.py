@@ -19,7 +19,7 @@ from argparse import RawDescriptionHelpFormatter
 __all__ = []
 __version__ = 0.1
 __date__ = '2017-09-03'
-__updated__ = '2017-09-03'
+__updated__ = '2021-03-28'
 
 DEBUG = 1
 TESTRUN = 0
@@ -37,16 +37,43 @@ class CLIError(Exception):
 
 
 def getPeak():
+    logging.debug("Getting uptime...")
+    uptime = 0
+    with open('/proc/uptime','r') as upfile:
+        uptime  = int(float(upfile.read().split()[0]) / 3600)
+
     logging.debug("Getting vnstat...")
     vnstat = json.loads(subprocess.check_output(["/usr/bin/vnstat", "-h", "--json","--iface",iface]).decode('utf-8'))
     #with open("/home/leonard/freifunk/FfsScripts/vnstat.json","r") as fp:
     #    vnstat = json.load(fp)
     hours = vnstat["interfaces"][0]["traffic"]["hours"]
     peak  = 0
-    for h in hours:
-        if h["tx"] > peak:
-            peak = h["tx"]
-    peak_mbits = peak/1024/3600*8
+
+    if uptime >= 24:
+        for h in hours:
+            if h['tx'] > peak:
+                peak = h['tx']
+    else:
+        max_id = int(time.strftime('%H'))
+        min_id = max_id - uptime
+
+        if min_id < 0:
+            for id in range(min_id+24, 24):
+                if hours[id]['tx'] > peak:
+                    peak = hours[id]['tx']
+            min_id = 0
+
+        for id in range(min_id, max_id):
+            if hours[id]['tx'] > peak:
+                peak = hours[id]['tx']
+
+        current_minute = int(time.strftime('%M'))
+        if current_minute > 0:
+            current_tx = hours[max_id]['tx']*60/current_minute
+            if current_tx > peak:
+                peak = current_tx
+
+    peak_mbits = 8*peak/1024/3600
     logging.debug("Found peak '{}'...".format(peak_mbits))
     return peak_mbits
 
