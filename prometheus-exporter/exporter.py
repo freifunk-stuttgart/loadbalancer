@@ -7,22 +7,19 @@ import time
 import sys
 import json
 
-def get_gw_name_from_url(url):
-    parsed = urlparse(url)
-    hostname = parsed.netloc.split(":")[0]
-    return hostname.split(".")[0]
-
 def read_gwstatus_urls(gwstatus_url_file):
-    urls = []
-    for url in gwstatus_url_file:
-        if (not url.startswith("#") and url.strip()):
-            urls.append(url.strip())
+    urls = {}
+    for line in gwstatus_url_file:
+        if (not line.startswith("#") and line.strip()):
+            parsed_line = line.split("|", 1)
+            gw_name = parsed_line[0].strip()
+            url = parsed_line[1].strip()
+            urls[gw_name] = url
     return urls
 
 def download_gw_status(gwstatus_urls):
     status_dict = {}
-    for url in gwstatus_urls:
-        gw_name = get_gw_name_from_url(url)
+    for gw_name, url in gwstatus_urls.items():
         if gw_name in status_dict:
             logging.warning("Duplicate gwname %s - ignoring!", gw_name)
             continue
