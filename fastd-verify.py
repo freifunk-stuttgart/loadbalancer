@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 '''
-Created on Apr 26, 2021
+Created on Apr 29, 2021
 @author: roland
 '''
 
@@ -8,24 +8,28 @@ import os
 import time
 import argparse
 import logging
+import logging.handlers
 import json
 
-logging.basicConfig(level=logging.ERROR)
+my_logger = logging.getLogger('fastd-verify')
+my_logger.setLevel(logging.DEBUG)
+log_handler = logging.handlers.SysLogHandler(address = '/dev/log')
+my_logger.addHandler(log_handler)
 
 DEFAULT_PREFERENCE = 50
 
 
 def IsValidKey(FilePath, FastdKey):
-    try:
-        for FileName in os.listdir(FilePath):
-            with open(os.path.join(FilePath, FileName),'r') as KeyFile:
+    for FileName in os.listdir(FilePath):
+        try:
+            with open(os.path.join(FilePath, FileName), encoding = 'utf-8') as KeyFile:
                 KeyData  = KeyFile.read()
-
-                if FastdKey in KeyData:
-                    return True
-    except:
-        logging.warning('Error while checking FastdKey %s in KeyFile %s/%s!' % (FastdKey, FilePath, FileName))
-        return True
+        except:
+            my_logger.error('fastd-verify: Error while reading KeyFile %s/%s' % (FilePath, FileName))
+        else:
+            if FastdKey in KeyData:
+#                my_logger.debug('fastd-verify: FastdKey %s found in KeyFile %s/%s' % (FastdKey, FilePath, FileName))
+                return True
 
     return False
 
@@ -42,7 +46,7 @@ def GetGwPreference(StatusFile, Segment):
                 Preference = 0
 
     except:
-        logging.warning('Error while checking GW StatusFile %s for Segment %d!' % (StatusFile, Segment))
+        my_logger.error('fastd-verify: Error while checking GW StatusFile %s for Segment %d!' % (StatusFile, Segment))
         Preference = DEFAULT_PREFERENCE
 
     return Preference
@@ -56,7 +60,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     if 'INTERFACE' not in os.environ or 'PEER_KEY' not in os.environ:
-        logging.warning('Error on Fastd API: Environment Variables not set!')
+        my_logger.error('fastd-verify: Error on Fastd API: Environment Variables not set!')
     else:
         if IsValidKey(args.keyfolder, os.environ['PEER_KEY'].lower()):
             Preference = GetGwPreference(args.gwstatus, int(os.environ['INTERFACE'][3:]))
