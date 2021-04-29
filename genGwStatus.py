@@ -47,6 +47,8 @@ def getPeak():
     #with open("/home/leonard/freifunk/FfsScripts/vnstat.json","r") as fp:
     #    vnstat = json.load(fp)
     hours = vnstat["interfaces"][0]["traffic"]["hours"]
+    current_hour = int(time.strftime('%H'))
+    current_minute = int(time.strftime('%M'))
     peak  = 0
 
     if uptime >= 24:
@@ -54,28 +56,27 @@ def getPeak():
             if h['tx'] > peak:
                 peak = h['tx']
     else:
-        max_id = int(time.strftime('%H'))
-        min_id = max_id - uptime
+        start_hour = current_hour - uptime
 
-        if min_id < 0:
-            for id in range(min_id+24, 24):
+        if start_hour < 0:
+            for id in range(start_hour+24, 24):
                 if hours[id]['tx'] > peak:
                     peak = hours[id]['tx']
-            min_id = 0
+            start_hour = 0
 
-        for id in range(min_id, max_id):
+        for id in range(start_hour, current_hour):
             if hours[id]['tx'] > peak:
                 peak = hours[id]['tx']
 
-        current_minute = int(time.strftime('%M'))
-        if current_minute > 0:
-            current_tx = hours[max_id]['tx']*60/current_minute
-            if current_tx > peak:
-                peak = current_tx
+    if current_minute > 0:
+        current_tx = hours[current_hour]['tx']*60/current_minute
+        if current_tx > peak:
+            peak = current_tx
 
     peak_mbits = 8*peak/1024/3600
     logging.debug("Found peak '{}'...".format(peak_mbits))
     return peak_mbits
+
 
 class GatewayZone(object):
     def __init__(self):
