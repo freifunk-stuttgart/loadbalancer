@@ -11,12 +11,13 @@ import logging
 import logging.handlers
 import json
 
-my_logger = logging.getLogger('fastd-verify')
+my_logger = logging.getLogger('fastd.verify')
 my_logger.setLevel(logging.DEBUG)
 log_handler = logging.handlers.SysLogHandler(address = '/dev/log')
 my_logger.addHandler(log_handler)
 
 DEFAULT_PREFERENCE = 50
+MAX_DELAY = 8.0
 
 
 def IsValidKey(FilePath, FastdKey):
@@ -31,6 +32,7 @@ def IsValidKey(FilePath, FastdKey):
 #                my_logger.debug('fastd-verify: FastdKey %s found in KeyFile %s/%s' % (FastdKey, FilePath, FileName))
                 return True
 
+    my_logger.debug('fastd-verify: Key %s not found in %s' % (FastdKey, FilePath))
     return False
 
 
@@ -39,14 +41,8 @@ def GetGwPreference(StatusFile, Segment):
         with open(StatusFile,'r') as JsonFile:
             StatusDict = json.load(JsonFile)
             Preference = int(StatusDict['segments'][str(Segment)]['preference'])
-
-            if Preference > 80:
-               Preference = 80
-            elif Preference < 0:
-                Preference = 0
-
     except:
-        my_logger.error('fastd-verify: Error while checking GW StatusFile %s for Segment %d!' % (StatusFile, Segment))
+        my_logger.error('fastd-verify: Error while checking GW StatusFile %s for Segment %d' % (StatusFile, Segment))
         Preference = DEFAULT_PREFERENCE
 
     return Preference
@@ -60,11 +56,17 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     if 'INTERFACE' not in os.environ or 'PEER_KEY' not in os.environ:
-        my_logger.error('fastd-verify: Error on Fastd API: Environment Variables not set!')
+        my_logger.error('fastd-verify: Error - Environment Variables not set')
     else:
         if IsValidKey(args.keyfolder, os.environ['PEER_KEY'].lower()):
             Preference = GetGwPreference(args.gwstatus, int(os.environ['INTERFACE'][3:]))
-            time.sleep((80 - Preference) * 0.08)
-            exit(0)
+            my_logger.debug('fastd-verify: Delaying Key %s / %s with Pref. %d ...' % (os.environ['INTERFACE'], os.environ['PEER_KEY'], Preference))
 
+            if Preference < 20:
+                time.sleep(MAX_DELAY)
+            elif Preference < 80:
+                time.sleep((1.0 - (Preference-20)/60.0) * MAX_DELAY)
+
+            my_logger.debug('fastd-verify: Key %s / %s with Pref. %d ok.' % (os.environ['INTERFACE'], os.environ['PEER_KEY'], Preference))
+            exit(0)
 exit(1)
