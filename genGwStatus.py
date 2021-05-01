@@ -29,7 +29,7 @@ class CLIError(Exception):
     '''Generic exception to raise and log different fatal errors.'''
     def __init__(self, msg):
         super(CLIError).__init__(type(self))
-        self.msg = "E: %s" % msg
+        self.msg = 'E: %s' % msg
     def __str__(self):
         return self.msg
     def __unicode__(self):
@@ -43,10 +43,10 @@ def getPeak():
         up_minutes  = int(float(upfile.read().split()[0]) / 60)
 
     logging.debug("Getting vnstat...")
-    vnstat = json.loads(subprocess.check_output(["/usr/bin/vnstat", "-h", "--json","--iface",iface]).decode('utf-8'))
-    #with open("/home/leonard/freifunk/FfsScripts/vnstat.json","r") as fp:
+    vnstat = json.loads(subprocess.check_output(['/usr/bin/vnstat', '-h', '--json','--iface',iface]).decode('utf-8'))
+    #with open('/home/leonard/freifunk/FfsScripts/vnstat.json','r') as fp:
     #    vnstat = json.load(fp)
-    hours = vnstat["interfaces"][0]["traffic"]["hours"]
+    hours = vnstat['interfaces'][0]['traffic']['hours']
     current_hour = int(time.strftime('%H'))
     current_minute = int(time.strftime('%M'))
     past_hours = int((up_minutes-current_minute+59)/60)
@@ -70,13 +70,12 @@ def getPeak():
                 peak = hours[id]['tx']
 
     if past_hours == 1:
-        peak *= 60 / (up_minutes - current_minute)
+        peak *= 60 / (up_minutes - current_minute)    # because not online during complete last hour
 
-    if up_minutes > current_minute:
-        up_minutes = current_minute
-
-    if up_minutes > 0:
-        current_tx = hours[current_hour]['tx']*60/up_minutes
+    data_minute = vnstat['interfaces'][0]['updated']['time']['minutes']
+    if data_minute > 0:
+        data_hour = vnstat['interfaces'][0]['updated']['time']['hour']
+        current_tx = hours[data_hour]['tx']*60/data_minute
         if current_tx > peak:
             peak = current_tx
 
@@ -90,7 +89,7 @@ class GatewayZone(object):
         self._zone = dns.zone.from_xfr(dns.query.xfr('dns1.lihas.de', 'gw.freifunk-stuttgart.de'))
 
     def getDnsStatus(self, gwid, segment):
-        hostname = "gw%02is%02i"%(gwid, segment)
+        hostname = 'gw%02is%02i'%(gwid, segment)
         try:
             record = self._zone.find_node(hostname, create=False)
             return 1
@@ -103,34 +102,34 @@ def getPreference(bwlimit):
 
 def genData(segmentCount, preference=0):
     data = {}
-    data["version"] = "1"
-    data["timestamp"] = int(time.time())
+    data['version'] = '1'
+    data['timestamp'] = int(time.time())
 
     segments = {}
     gatewayZone = GatewayZone()
     for s in range(1,segmentCount+1):
         segments[s] = {}
-        segments[s]["preference"] = preference
-        segments[s]["dnsactive"] = gatewayZone.getDnsStatus(1, s)
+        segments[s]['preference'] = preference
+        segments[s]['dnsactive'] = gatewayZone.getDnsStatus(1, s)
 
-    data["segments"] = segments
+    data['segments'] = segments
     return data
 
 def genJson(data,output):
-    with open(output,"w") as fp:
+    with open(output,'w') as fp:
         json.dump(data,fp ,indent=4,separators=(',', ': '))
 
 
 #def main(argv=None): # IGNORE:C0111
-if __name__ == "__main__":
+if __name__ == '__main__':
 
     # Setup argument parser
-    parser = ArgumentParser(description="Generator for gwstats.json", formatter_class=RawDescriptionHelpFormatter)
-    parser.add_argument("-o", "--output", dest="output", action="store", required=True, help="output filename")
-    parser.add_argument("-b", "--bwlimit", type=int, required=True, help="bwlimit in mbit/s")
-    parser.add_argument("-s", "--segments", type=int, required=True, help="number of segments to handle")
-    parser.add_argument("-i", "--iface", type=str, required=True, help="interface for vnstat")
-    parser.add_argument("-d", "--debug", action="store_true", help="print debug/logging information")
+    parser = ArgumentParser(description='Generator for gwstats.json', formatter_class=RawDescriptionHelpFormatter)
+    parser.add_argument('-o', '--output', dest='output', action='store', required=True, help='output filename')
+    parser.add_argument('-b', '--bwlimit', type=int, required=True, help='bwlimit in mbit/s')
+    parser.add_argument('-s', '--segments', type=int, required=True, help='number of segments to handle')
+    parser.add_argument('-i', '--iface', type=str, required=True, help='interface for vnstat')
+    parser.add_argument('-d', '--debug', action='store_true', help='print debug/logging information')
 
     # Process arguments
     args = parser.parse_args()
