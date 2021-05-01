@@ -52,7 +52,7 @@ def getPeak():
     past_hours = int((up_minutes-current_minute+59)/60)
     peak  = 0
 
-    if up_minutes >= 24:
+    if up_minutes >= 1440:    # Uptime >= 24 hours
         for h in hours:
             if h['tx'] > peak:
                 peak = h['tx']
