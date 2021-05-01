@@ -19,7 +19,7 @@ from argparse import RawDescriptionHelpFormatter
 __all__ = []
 __version__ = 0.1
 __date__ = '2017-09-03'
-__updated__ = '2021-03-28'
+__updated__ = '2021-05-01'
 
 DEBUG = 1
 TESTRUN = 0
@@ -38,9 +38,9 @@ class CLIError(Exception):
 
 def getPeak():
     logging.debug("Getting uptime...")
-    uptime = 0
+    up_minutes = 0
     with open('/proc/uptime','r') as upfile:
-        uptime  = int(float(upfile.read().split()[0]) / 3600)
+        up_minutes  = int(float(upfile.read().split()[0]) / 60)
 
     logging.debug("Getting vnstat...")
     vnstat = json.loads(subprocess.check_output(["/usr/bin/vnstat", "-h", "--json","--iface",iface]).decode('utf-8'))
@@ -49,14 +49,15 @@ def getPeak():
     hours = vnstat["interfaces"][0]["traffic"]["hours"]
     current_hour = int(time.strftime('%H'))
     current_minute = int(time.strftime('%M'))
+    past_hours = int((up_minutes-current_minute+59)/60)
     peak  = 0
 
-    if uptime >= 24:
+    if up_minutes >= 24:
         for h in hours:
             if h['tx'] > peak:
                 peak = h['tx']
     else:
-        start_hour = current_hour - uptime
+        start_hour = current_hour - past_hours
 
         if start_hour < 0:
             for id in range(start_hour+24, 24):
@@ -68,8 +69,14 @@ def getPeak():
             if hours[id]['tx'] > peak:
                 peak = hours[id]['tx']
 
-    if current_minute > 0:
-        current_tx = hours[current_hour]['tx']*60/current_minute
+    if past_hours == 1:
+        peak *= 60 / (up_minutes - current_minute)
+
+    if up_minutes > current_minute:
+        up_minutes = current_minute
+
+    if up_minutes > 0:
+        current_tx = hours[current_hour]['tx']*60/up_minutes
         if current_tx > peak:
             peak = current_tx
 
