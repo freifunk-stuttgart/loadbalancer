@@ -83,10 +83,14 @@ def getPeak():
     peak_mbits = 8*peak/1024/3600
 
     # get current traffic (last 5 seconds)
-    vnstat = json.loads(subprocess.check_output(['/usr/bin/vnstat', '-tr', '--json','--iface',iface]).decode('utf-8'))
-    current_tx = vnstat['tx']['bytespersecond'] * 8/1024/1024
-    if current_tx > peak_mbits:
-        peak_mbits = current_tx
+    try:
+        vnstat = json.loads(subprocess.check_output(['/usr/bin/vnstat', '-tr', '--json','--iface',iface]).decode('utf-8'))
+        current_tx = vnstat['tx']['bytespersecond'] * 8/1024/1024
+    except:
+        current_tx = 0    # e.g. on old version of vnstat doesn't support json on output
+    else:
+        if current_tx > peak_mbits:
+            peak_mbits = current_tx
 
     logging.debug("Found peak '{}'...".format(peak_mbits))
     return peak_mbits
