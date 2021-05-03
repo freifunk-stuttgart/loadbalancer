@@ -62,10 +62,12 @@ if __name__ == '__main__':
             Preference = GetGwPreference(args.gwstatus, int(os.environ['INTERFACE'][3:]))
             my_logger.debug('fastd-verify: %s / %s / %d will be delayed...' % (os.environ['INTERFACE'], os.environ['PEER_KEY'], Preference))
 
-            if Preference < 20:
+            if Preference <= 20:
                 time.sleep(MAX_DELAY)
-            elif Preference < 80:
-                time.sleep((1.0 - (Preference-20)/60.0) * MAX_DELAY)
+            elif Preference <= 40:    # 20 .. 40
+                time.sleep((1.0 - (Preference-20)/40.0) * MAX_DELAY)    # (20|1.0) .. (40|0.5)
+            elif Preference <= 80:    # 40 .. 80
+                time.sleep((0.5 - (Preference-40)/80.0) * MAX_DELAY)    # (40|0.5) .. (80|0.0)
 
             my_logger.debug('fastd-verify: %s / %s / %d ok.' % (os.environ['INTERFACE'], os.environ['PEER_KEY'], Preference))
             exit(0)
