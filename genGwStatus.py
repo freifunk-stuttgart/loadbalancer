@@ -69,9 +69,10 @@ def getPeak():
             if hours[id]['tx'] > peak:
                 peak = hours[id]['tx']
 
-    if past_hours == 1:
-        peak *= 60 / (up_minutes - current_minute)    # because not online during complete last hour
+    if past_hours == 1:    # GW got online during last hour
+        peak *= 60 / (up_minutes - current_minute)    # correction for incomplete last hour
 
+    # data of current hour is summed up to last update only
     data_minute = vnstat['interfaces'][0]['updated']['time']['minutes']
     if data_minute > 0:
         data_hour = vnstat['interfaces'][0]['updated']['time']['hour']
@@ -80,6 +81,13 @@ def getPeak():
             peak = current_tx
 
     peak_mbits = 8*peak/1024/3600
+
+    # get current traffic (last 5 seconds)
+    vnstat = json.loads(subprocess.check_output(['/usr/bin/vnstat', '-tr', '--json','--iface',iface]).decode('utf-8'))
+    current_tx = vnstat['tx']['bytespersecond'] * 8/1024/1024
+    if current_tx > peak_mbits:
+        peak_mbits = current_tx
+
     logging.debug("Found peak '{}'...".format(peak_mbits))
     return peak_mbits
 
