@@ -69,9 +69,6 @@ def getPeak():
             if hours[id]['tx'] > peak:
                 peak = hours[id]['tx']
 
-    if past_hours == 1:    # GW got online during last hour
-        peak *= 60 / (up_minutes - current_minute)    # correction for incomplete last hour
-
     # data of current hour is summed up to last update only
     data_minute = vnstat['interfaces'][0]['updated']['time']['minutes']
     if data_minute > 0:
