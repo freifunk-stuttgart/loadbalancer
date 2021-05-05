@@ -18,6 +18,7 @@ my_logger.addHandler(log_handler)
 
 DEFAULT_PREFERENCE = 50
 MAX_DELAY = 8.0
+OVERLOAD_DELAY = 9.0
 
 
 def IsValidKey(FilePath, FastdKey):
@@ -62,7 +63,9 @@ if __name__ == '__main__':
             Preference = GetGwPreference(args.gwstatus, int(os.environ['INTERFACE'][3:]))
             my_logger.debug('fastd-verify: %s / %s / %d will be delayed...' % (os.environ['INTERFACE'], os.environ['PEER_KEY'], Preference))
 
-            if Preference <= 20:
+            if Preference < 0:
+                time.sleep(OVERLOAD_DELAY)
+            elif Preference <= 20:
                 time.sleep(MAX_DELAY)
             elif Preference <= 40:    # 20 .. 40
                 time.sleep((1.0 - (Preference-20)/40.0) * MAX_DELAY)    # (20|1.0) .. (40|0.5)
