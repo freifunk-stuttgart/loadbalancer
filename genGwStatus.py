@@ -19,7 +19,7 @@ from argparse import RawDescriptionHelpFormatter
 __all__ = []
 __version__ = 0.1
 __date__ = '2017-09-03'
-__updated__ = '2021-05-01'
+__updated__ = '2021-05-11'
 
 DEBUG = 1
 TESTRUN = 0
@@ -52,7 +52,7 @@ def getPeak():
     past_hours = int((up_minutes-current_minute+59)/60)
     peak  = 0
 
-    if up_minutes >= 1440:    # Uptime >= 24 hours
+    if up_minutes < 10 or up_minutes > 1440:    # Uptime < 10 minutes or > 24 hours
         for h in hours:
             if h['tx'] > peak:
                 peak = h['tx']
