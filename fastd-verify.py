@@ -63,7 +63,7 @@ if __name__ == '__main__':
             Preference = GetGwPreference(args.gwstatus, int(os.environ['INTERFACE'][3:]))
             my_logger.debug('fastd-verify: %s / %s / %d will be delayed...' % (os.environ['INTERFACE'], os.environ['PEER_KEY'], Preference))
 
-            if Preference < 0:
+            if Preference < 5:
                 time.sleep(OVERLOAD_DELAY)
             elif Preference <= 20:
                 time.sleep(MAX_DELAY)
