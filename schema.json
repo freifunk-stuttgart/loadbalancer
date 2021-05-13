@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://freifunk-stuttgart.net/schema/gateway-preference",
+  "title": "Gateway Preference",
+  "description": "A mechanisms gateways in the Freifunk Stuttgart network use to announce their willingness to accept new nodes",
+  "type": "object",
+  "properties": {
+    "version": {
+      "description": "The protocol version. Only version 1 exists at the moment.",
+      "type": "string",
+      "const": "1"
+    },
+    "timestamp": {
+      "description": "UNIX timestamp of the time the values in this document were sampled.",
+      "type": "integer"
+    },
+    "segments": {
+      "type": "object",
+      "patternProperties": {
+        "^[0-9]+$": {
+          "type": "object",
+	  "description": "The preference description in a segment. The gateway MUST advertise segments which it serves, but it MAY announce segments which it doesn't serve.",
+          "properties": {
+	    "preference": {
+	      "type": "integer",
+	      "maximum": 100,
+	      "description": "The gateway's willingness to accept new nodes in the given segment. 100 means most willing."
+	    }
+	  },
+          "required": [ "preference" ]
+        }
+      }
+    }
+  },
+  "required": [ "version", "timestamp", "segments" ]
+}
