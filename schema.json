@@ -19,18 +19,24 @@
       "patternProperties": {
         "^[0-9]+$": {
           "type": "object",
-	  "description": "The preference description in a segment. The gateway MUST advertise segments which it serves, but it MAY announce segments which it doesn't serve.",
+          "description": "The preference description in a segment. The gateway MUST advertise segments which it serves, but it MAY announce segments which it doesn't serve.",
           "properties": {
-	    "preference": {
-	      "type": "integer",
-	      "maximum": 100,
-	      "description": "The gateway's willingness to accept new nodes in the given segment. 100 means most willing."
-	    }
-	  },
-          "required": [ "preference" ]
+            "preference": {
+              "type": "integer",
+              "maximum": 100,
+              "description": "The gateway's willingness to accept new nodes in the given segment. 100 means most willing."
+            }
+          },
+          "required": [
+            "preference"
+          ]
         }
       }
     }
   },
-  "required": [ "version", "timestamp", "segments" ]
+  "required": [
+    "version",
+    "timestamp",
+    "segments"
+  ]
 }
