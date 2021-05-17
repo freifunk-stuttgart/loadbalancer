@@ -55,6 +55,10 @@ def getPeak():
 
     reference_tx = (hours[(data_hour+23)%24]['tx'] + hours[(data_hour+1)%24]['tx']) / 2
     peak *= hours[data_hour]['tx']/reference_tx    # traffic related to 24 hours ago
+
+    if peak < hours[data_hour]['tx']:
+        peak = hours[data_hour]['tx']
+
     peak_mbits = 8*peak/1024/3600
 
     # get current traffic (last 5 seconds)
