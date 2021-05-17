@@ -19,7 +19,7 @@ from argparse import RawDescriptionHelpFormatter
 __all__ = []
 __version__ = 0.1
 __date__ = '2017-09-03'
-__updated__ = '2021-05-11'
+__updated__ = '2021-05-17'
 
 DEBUG = 1
 TESTRUN = 0
@@ -47,9 +47,9 @@ def getPeak():
     #with open('/home/leonard/freifunk/FfsScripts/vnstat.json','r') as fp:
     #    vnstat = json.load(fp)
     hours = vnstat['interfaces'][0]['traffic']['hours']
-    current_hour = int(time.strftime('%H'))
-    current_minute = int(time.strftime('%M'))
-    past_hours = int((up_minutes-current_minute+59)/60)
+    data_hour = vnstat['interfaces'][0]['updated']['time']['hour']
+    data_minute = vnstat['interfaces'][0]['updated']['time']['minutes']
+    past_hours = int((up_minutes-data_minute+59)/60)
     peak  = 0
 
     if up_minutes < 10 or up_minutes > 1440:    # Uptime < 10 minutes or > 24 hours
@@ -57,7 +57,7 @@ def getPeak():
             if h['tx'] > peak:
                 peak = h['tx']
     else:
-        start_hour = current_hour - past_hours
+        start_hour = data_hour - past_hours
 
         if start_hour < 0:
             for id in range(start_hour+24, 24):
@@ -65,14 +65,12 @@ def getPeak():
                     peak = hours[id]['tx']
             start_hour = 0
 
-        for id in range(start_hour, current_hour):
+        for id in range(start_hour, data_hour):
             if hours[id]['tx'] > peak:
                 peak = hours[id]['tx']
 
-    # data of current hour is summed up to last update only
-    data_minute = vnstat['interfaces'][0]['updated']['time']['minutes']
+    # current hour is not 60 minutes
     if data_minute > 0:
-        data_hour = vnstat['interfaces'][0]['updated']['time']['hour']
         current_tx = hours[data_hour]['tx']*60/data_minute
         if current_tx > peak:
             peak = current_tx
