@@ -37,11 +37,6 @@ class CLIError(Exception):
 
 
 def getPeak():
-    logging.debug("Getting uptime...")
-    up_minutes = 0
-    with open('/proc/uptime','r') as upfile:
-        up_minutes  = int(float(upfile.read().split()[0]) / 60)
-
     logging.debug("Getting vnstat...")
     vnstat = json.loads(subprocess.check_output(['/usr/bin/vnstat', '-h', '--json','--iface',iface]).decode('utf-8'))
     #with open('/home/leonard/freifunk/FfsScripts/vnstat.json','r') as fp:
@@ -49,31 +44,18 @@ def getPeak():
     hours = vnstat['interfaces'][0]['traffic']['hours']
     data_hour = vnstat['interfaces'][0]['updated']['time']['hour']
     data_minute = vnstat['interfaces'][0]['updated']['time']['minutes']
-    past_hours = int((up_minutes-data_minute+59)/60)
-    peak  = 0
+    peak = 0
 
-    if up_minutes < 10 or up_minutes > 1440:    # Uptime < 10 minutes or > 24 hours
-        for h in hours:
-            if h['tx'] > peak:
-                peak = h['tx']
-    else:
-        start_hour = data_hour - past_hours
-
-        if start_hour < 0:
-            for id in range(start_hour+24, 24):
-                if hours[id]['tx'] > peak:
-                    peak = hours[id]['tx']
-            start_hour = 0
-
-        for id in range(start_hour, data_hour):
-            if hours[id]['tx'] > peak:
-                peak = hours[id]['tx']
-
-    # current hour is not 60 minutes
     if data_minute > 0:
-        current_tx = hours[data_hour]['tx']*60/data_minute
-        if current_tx > peak:
-            peak = current_tx
+        current_tx = hours[data_hour]['tx']*60/data_minute    # current hour is not 60 minutes
+
+    for h in hours:
+        if h['tx'] > peak:
+            peak = h['tx']
+
+    reference_tx = (hours[(data_hour+23)%24]['tx'] + hours[(data_hour+1)%24]['tx']) / 2
+    if hours[data_hour]['tx'] < reference_tx:
+        peak *= hours[data_hour]['tx']/reference_tx    # less traffic than 24 hours ago
 
     peak_mbits = 8*peak/1024/3600
 
