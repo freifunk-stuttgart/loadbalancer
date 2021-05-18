@@ -46,31 +46,29 @@ def getPeak():
     data_minute = vnstat['interfaces'][0]['updated']['time']['minutes']
     peak = 0
 
-    if data_minute > 0:
-        hours[data_hour]['tx'] *= 60/data_minute    # current hour is not 60 minutes
+    # get current traffic (last 5 seconds)
+    try:
+        vnstat = json.loads(subprocess.check_output(['/usr/bin/vnstat', '-tr', '--json','--iface',iface]).decode('utf-8'))
+        current_tx = vnstat['tx']['bytespersecond']
+    except:
+        current_tx = 0    # e.g. on old version of vnstat doesn't support json on output
+
+    if data_minute > 1:
+        hours[data_hour]['tx'] *= 60/data_minute    # current hour contains data of less than 60 minutes
+    else:
+        hours[data_hour]['tx'] = current_tx * 3600/1024    # use current traffic instead
 
     for h in hours:
         if h['tx'] > peak:
             peak = h['tx']
 
-    reference_tx = (hours[(data_hour+23)%24]['tx'] + hours[(data_hour+1)%24]['tx']) / 2
-    peak *= hours[data_hour]['tx']/reference_tx    # traffic related to 24 hours ago
-
-    if peak < hours[data_hour]['tx']:
-        peak = hours[data_hour]['tx']
+    if hours[data_hour]['tx'] > 0:
+        reference_tx = (hours[(data_hour+23)%24]['tx'] + hours[(data_hour+1)%24]['tx']) / 2
+        peak *= hours[data_hour]['tx']/reference_tx    # traffic related to 24 hours ago
+        if peak < hours[data_hour]['tx']:
+            peak = hours[data_hour]['tx']
 
     peak_mbits = 8*peak/1024/3600
-
-    # get current traffic (last 5 seconds)
-    try:
-        vnstat = json.loads(subprocess.check_output(['/usr/bin/vnstat', '-tr', '--json','--iface',iface]).decode('utf-8'))
-        current_tx = vnstat['tx']['bytespersecond'] * 8/1024/1024
-    except:
-        current_tx = 0    # e.g. on old version of vnstat doesn't support json on output
-    else:
-        if current_tx > peak_mbits:
-            peak_mbits = current_tx
-
     logging.debug("Found peak '{}'...".format(peak_mbits))
     return peak_mbits
 
