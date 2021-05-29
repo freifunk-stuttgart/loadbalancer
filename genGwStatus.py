@@ -53,7 +53,7 @@ def getPeak():
     except:
         current_tx = 0    # e.g. old version of vnstat doesn't support json output here
 
-    if data_minute > 0 and hours[data_hour]['tx'] > 0:
+    if data_minute > 5 and hours[data_hour]['tx'] > 0:
         hours[data_hour]['tx'] *= 60/data_minute    # current hour contains data of less than 60 minutes
     else:
         hours[data_hour]['tx'] = current_tx    # use current traffic instead
