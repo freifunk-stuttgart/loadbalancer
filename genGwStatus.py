@@ -19,7 +19,7 @@ from argparse import RawDescriptionHelpFormatter
 __all__ = []
 __version__ = 0.1
 __date__ = '2017-09-03'
-__updated__ = '2021-05-17'
+__updated__ = '2021-05-29'
 
 DEBUG = 1
 TESTRUN = 0
@@ -46,27 +46,31 @@ def getPeak():
     data_minute = vnstat['interfaces'][0]['updated']['time']['minutes']
     peak = 0
 
-    # get current traffic (last 5 seconds)
     try:
+        # get current traffic (based on last 5 seconds)
         vnstat = json.loads(subprocess.check_output(['/usr/bin/vnstat', '-tr', '--json','--iface',iface]).decode('utf-8'))
-        current_tx = vnstat['tx']['bytespersecond']
+        current_tx = vnstat['tx']['bytespersecond'] * 3600/1024
     except:
-        current_tx = 0    # e.g. on old version of vnstat doesn't support json on output
+        current_tx = 0    # e.g. old version of vnstat doesn't support json output here
 
-    if data_minute > 1:
+    if data_minute > 0 and hours[data_hour]['tx'] > 0:
         hours[data_hour]['tx'] *= 60/data_minute    # current hour contains data of less than 60 minutes
     else:
-        hours[data_hour]['tx'] = current_tx * 3600/1024    # use current traffic instead
+        hours[data_hour]['tx'] = current_tx    # use current traffic instead
 
     for h in hours:
         if h['tx'] > peak:
             peak = h['tx']
 
-    if hours[data_hour]['tx'] > 0:
-        reference_tx = (hours[(data_hour+23)%24]['tx'] + hours[(data_hour+1)%24]['tx']) / 2
-        peak *= hours[data_hour]['tx']/reference_tx    # traffic related to 24 hours ago
-        if peak < hours[data_hour]['tx']:
-            peak = hours[data_hour]['tx']
+    expected_tx = 2*hours[(data_hour+23)%24]['tx'] - hours[(data_hour+22)%24]['tx']
+    reference_tx = 2*hours[(data_hour+1)%24]['tx'] - hours[(data_hour+2)%24]['tx']
+
+    if hours[data_hour]['tx'] > expected_tx:
+        expected_tx = hours[data_hour]['tx']
+
+    peak *= expected_tx/reference_tx    # traffic related to 24 hours ago
+    if peak < hours[data_hour]['tx']:
+        peak = hours[data_hour]['tx']
 
     peak_mbits = 8*peak/1024/3600
     logging.debug("Found peak '{}'...".format(peak_mbits))
