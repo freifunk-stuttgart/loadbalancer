@@ -19,7 +19,7 @@ from argparse import RawDescriptionHelpFormatter
 __all__ = []
 __version__ = 0.1
 __date__ = '2017-09-03'
-__updated__ = '2021-05-29'
+__updated__ = '2021-05-30'
 
 DEBUG = 1
 TESTRUN = 0
@@ -61,16 +61,6 @@ def getPeak():
     for h in hours:
         if h['tx'] > peak:
             peak = h['tx']
-
-    expected_tx = 2*hours[(data_hour+23)%24]['tx'] - hours[(data_hour+22)%24]['tx']
-    reference_tx = 2*hours[(data_hour+1)%24]['tx'] - hours[(data_hour+2)%24]['tx']
-
-    if hours[data_hour]['tx'] > expected_tx:
-        expected_tx = hours[data_hour]['tx']
-
-    peak *= expected_tx/reference_tx    # traffic related to 24 hours ago
-    if peak < hours[data_hour]['tx']:
-        peak = hours[data_hour]['tx']
 
     peak_mbits = 8*peak/1024/3600
     logging.debug("Found peak '{}'...".format(peak_mbits))
