@@ -41,26 +41,33 @@ def getPeak():
     vnstat = json.loads(subprocess.check_output(['/usr/bin/vnstat', '-h', '--json','--iface',iface]).decode('utf-8'))
     #with open('/home/leonard/freifunk/FfsScripts/vnstat.json','r') as fp:
     #    vnstat = json.load(fp)
-    hours = vnstat['interfaces'][0]['traffic']['hours']
     data_hour = vnstat['interfaces'][0]['updated']['time']['hour']
     data_minute = vnstat['interfaces'][0]['updated']['time']['minutes']
+    traffic = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
     peak = 0
 
-    try:
-        # get current traffic (based on last 5 seconds)
-        vnstat = json.loads(subprocess.check_output(['/usr/bin/vnstat', '-tr', '--json','--iface',iface]).decode('utf-8'))
-        current_tx = vnstat['tx']['bytespersecond'] * 3600/1024
-    except:
-        current_tx = 0    # e.g. old version of vnstat doesn't support json output here
-
-    if data_minute > 5 and hours[data_hour]['tx'] > 0:
-        hours[data_hour]['tx'] *= 60/data_minute    # current hour contains data of less than 60 minutes
-    else:
-        hours[data_hour]['tx'] = current_tx    # use current traffic instead
-
-    for h in hours:
+    for h in vnstat['interfaces'][0]['traffic']['hours']:
+        traffic[h['id']] = h['tx']
         if h['tx'] > peak:
             peak = h['tx']
+
+    if data_minute > 5 and traffic[data_hour] > 0:
+        current_tx = traffic[data_hour] * 60/data_minute    # current hour contains data of less than 60 minutes
+    else:
+        try:
+            # get current traffic (based on last 5 seconds)
+            vnstat = json.loads(subprocess.check_output(['/usr/bin/vnstat', '-tr', '--json','--iface',iface]).decode('utf-8'))
+            current_tx = vnstat['tx']['bytespersecond'] * 3600/1024
+        except:
+            current_tx = 0    # e.g. old version of vnstat doesn't support json output here
+
+    if current_tx > peak:
+        peak = current_tx
+
+    reference_tx = traffic[(data_hour+1)%24]
+
+    if current_tx > 0 and reference_tx > 0 and current_tx < reference_tx/3:
+        peak *= current_tx / reference_tx
 
     peak_mbits = 8*peak/1024/3600
     logging.debug("Found peak '{}'...".format(peak_mbits))
