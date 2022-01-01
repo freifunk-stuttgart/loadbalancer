@@ -43,12 +43,15 @@ def getPeak():
     #with open('/home/leonard/freifunk/FfsScripts/vnstat.json','r') as fp:
     #    vnstat = json.load(fp)
     data_hour = vnstat['interfaces'][0]['updated']['time']['hour']
-    data_minute = vnstat['interfaces'][0]['updated']['time']['minutes']
-    traffic = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+    data_minute = vnstat['interfaces'][0]['updated']['time']['minute']
+    traffic = [0] * 24
     peak = 0
 
-    for h in vnstat['interfaces'][0]['traffic']['hours']:
-        traffic[h['id']] = h['tx']
+    for h in vnstat['interfaces'][0]['traffic']['hour']:
+        if vnstat["jsonversion"] == "1":
+            traffic[h['id']] = h['tx']
+        else:
+            traffic[h['time']['hour']] = h['tx']
         if h['tx'] > peak:
             peak = h['tx']
 
