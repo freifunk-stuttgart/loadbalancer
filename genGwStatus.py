@@ -43,10 +43,17 @@ def getUpdatedMinute(vnstat):
         return vnstat['interfaces'][0]['updated']['time']['minute']
 
 def getHourForHourlyInterval(hourly_interval):
-        if vnstat["jsonversion"] == "1":
-            return hourly_interval['id']
-        else:
-            return hourly_interval['time']['hour']
+    if vnstat["jsonversion"] == "1":
+        return hourly_interval['id']
+    else:
+        return hourly_interval['time']['hour']
+
+def getHourlyTraffic(vnstat):
+    if vnstat["jsonversion"] == "1":
+        return vnstat['interfaces'][0]['traffic']['hour']
+    else:
+        return vnstat['interfaces'][0]['traffic']['hours']
+
 
 def getPeak():
     logging.debug("Getting vnstat...")
@@ -58,7 +65,7 @@ def getPeak():
     traffic = [0] * 24
     peak = 0
 
-    for h in vnstat['interfaces'][0]['traffic']['hour']:
+    for h in getHourlyTraffic(vnstat):
         hour = getHourForHourlyInterval(h)
         traffic[hour] = h['tx']
         if h['tx'] > peak:
