@@ -50,9 +50,9 @@ def getHourForHourlyInterval(hourly_interval):
 
 def getHourlyTraffic(vnstat):
     if vnstat["jsonversion"] == "1":
-        return vnstat['interfaces'][0]['traffic']['hour']
-    else:
         return vnstat['interfaces'][0]['traffic']['hours']
+    else:
+        return vnstat['interfaces'][0]['traffic']['hour']
 
 
 def getPeak():
