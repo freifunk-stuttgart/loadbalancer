@@ -36,6 +36,17 @@ class CLIError(Exception):
     def __unicode__(self):
         return self.msg
 
+def getUpdatedMinute(vnstat):
+    if vnstat["jsonversion"] == "1":
+        return vnstat['interfaces'][0]['updated']['time']['minutes']
+    else:
+        return vnstat['interfaces'][0]['updated']['time']['minute']
+
+def getHourForHourlyInterval(hourly_interval):
+        if vnstat["jsonversion"] == "1":
+            return hourly_interval['id']
+        else:
+            return hourly_interval['time']['hour']
 
 def getPeak():
     logging.debug("Getting vnstat...")
@@ -43,15 +54,13 @@ def getPeak():
     #with open('/home/leonard/freifunk/FfsScripts/vnstat.json','r') as fp:
     #    vnstat = json.load(fp)
     data_hour = vnstat['interfaces'][0]['updated']['time']['hour']
-    data_minute = vnstat['interfaces'][0]['updated']['time']['minute']
+    data_minute = getUpdatedMinute(vnstat)
     traffic = [0] * 24
     peak = 0
 
     for h in vnstat['interfaces'][0]['traffic']['hour']:
-        if vnstat["jsonversion"] == "1":
-            traffic[h['id']] = h['tx']
-        else:
-            traffic[h['time']['hour']] = h['tx']
+        hour = getHourForHourlyInterval(h)
+        traffic[hour] = h['tx']
         if h['tx'] > peak:
             peak = h['tx']
 
