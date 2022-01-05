@@ -54,6 +54,11 @@ def getHourlyTraffic(vnstat):
     else:
         return vnstat['interfaces'][0]['traffic']['hour']
 
+def hourlyPeakToMbits(peak, vnstat):
+    if vnstat["jsonversion"] == "1":
+        return peak*8/60/60/1024
+    else:
+        return peak*8/60/60/1024/1024
 
 def getPeak():
     logging.debug("Getting vnstat...")
@@ -89,7 +94,7 @@ def getPeak():
     if current_tx > 0 and reference_tx > 0 and current_tx < reference_tx/3:
         peak *= current_tx / reference_tx
 
-    peak_mbits = 8*peak/1024/3600
+    peak_mbits = hourlyPeakToMbits(peak, vnstat)
     logging.debug("Found peak '{}'...".format(peak_mbits))
     return peak_mbits
 
