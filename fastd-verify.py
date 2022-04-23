@@ -65,12 +65,12 @@ if __name__ == '__main__':
 
             if Preference < 5:
                 time.sleep(OVERLOAD_DELAY)
-            elif Preference <= 20:
+            elif Preference <= 10:
                 time.sleep(MAX_DELAY)
-            elif Preference <= 50:    # 20 .. 50
-                time.sleep((1.00 - (Preference-20)/30.0 * 0.75) * MAX_DELAY)    # (20|8.0) .. (50|2.0)
-            elif Preference <= 80:    # 50 .. 80
-                time.sleep((0.25 - (Preference-50)/30.0 * 0.25) * MAX_DELAY)    # (50|2.0) .. (80|0.0)
+            elif Preference <= 30:    # 10 .. 30
+                time.sleep((1.00 - (Preference-10)/20.0 * 0.75) * MAX_DELAY)    # (10|8.0) .. (30|2.0)
+            elif Preference <= 50:    # 30 .. 50
+                time.sleep((0.25 - (Preference-30)/20.0 * 0.25) * MAX_DELAY)    # (30|2.0) .. (50|0.0)
 
             my_logger.debug('fastd-verify: %s / %s / %d ok.' % (os.environ['INTERFACE'], os.environ['PEER_KEY'], Preference))
             exit(0)
