@@ -79,12 +79,8 @@ def getPeak():
     if data_minute > 5 and traffic[data_hour] > 0:
         current_tx = traffic[data_hour] * 60/data_minute    # current hour contains data of less than 60 minutes
     else:
-        try:
-            # get current traffic (based on last 5 seconds)
-            vnstat = json.loads(subprocess.check_output(['/usr/bin/vnstat', '-tr', '--json','--iface',iface]).decode('utf-8'))
-            current_tx = vnstat['tx']['bytespersecond'] * 3600/1024
-        except:
-            current_tx = 0    # e.g. old version of vnstat doesn't support json output here
+        # at data_minute <= 5 we can not get reliable data from vnstat
+        sys.exit(0)
 
     if current_tx > peak:
         peak = current_tx
