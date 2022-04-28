@@ -1,3 +1,4 @@
+#!/usr/bin/python3
 import prometheus_client as prometheus
 import argparse
 import requests
@@ -66,7 +67,7 @@ if __name__ == "__main__":
         # first download status files to avoid blocking to long after clearing gauge
         status_jsons = download_gw_status(gwstatus_urls)
 
-        preference_gauge.clear()
+        #preference_gauge.clear()
         for gw_name, status_json in status_jsons.items():
             try:
                 for segment_number, segment_status in status_json["segments"].items():
