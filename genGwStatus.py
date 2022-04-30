@@ -7,6 +7,7 @@ genGwStatus -- generator for gwstatus.json
 import sys
 import os
 import time
+import calendar
 import json
 import subprocess
 import logging
@@ -20,7 +21,7 @@ from argparse import RawDescriptionHelpFormatter
 __all__ = []
 __version__ = 0.1
 __date__ = '2017-09-03'
-__updated__ = '2021-05-30'
+__updated__ = '2022-04-30'
 
 DEBUG = 1
 TESTRUN = 0
@@ -36,61 +37,75 @@ class CLIError(Exception):
     def __unicode__(self):
         return self.msg
 
-def getUpdatedMinute(vnstat):
-    if vnstat["jsonversion"] == "1":
-        return vnstat['interfaces'][0]['updated']['time']['minutes']
-    else:
-        return vnstat['interfaces'][0]['updated']['time']['minute']
 
-def getHourForHourlyInterval(hourly_interval, vnstat):
-    if vnstat["jsonversion"] == "1":
-        return hourly_interval['id']
-    else:
-        return hourly_interval['time']['hour']
+def getUnixTime(data):
+    t = time.strptime('%4d-%02d-%02d %02d:%02d' %
+                      ( data['date']['year'],
+                        data['date']['month'],
+                        data['date']['day'],
+                       data['time']['hour'],
+                       data['time']['minute']
+                     ),'%Y-%m-%d %H:%M')
 
-def getHourlyTraffic(vnstat):
-    if vnstat["jsonversion"] == "1":
-        return vnstat['interfaces'][0]['traffic']['hours']
-    else:
-        return vnstat['interfaces'][0]['traffic']['hour']
+    return calendar.timegm(t)
 
-def hourlyPeakToMbits(peak, vnstat):
-    if vnstat["jsonversion"] == "1":
-        return peak*8/60/60/1024
-    else:
-        return peak*8/60/60/1024/1024
+
+def getPeak_v1(vnstat):
+    peak = 0
+
+    for h in vnstat['interfaces'][0]['traffic']['hours']:
+        if h['tx'] > peak:
+            peak = h['tx']
+
+    peak_mbits = peak*8/60/60/1024
+    return peak_mbits
+
+
+def getPeak_v2(vnstat):
+    start_time = getUnixTime(vnstat['interfaces'][0]['updated']) - 24*3600
+    peak = 0
+
+    for h in vnstat['interfaces'][0]['traffic']['hour']:
+        t = getUnixTime(h)
+
+        if t >= start_time and h['tx'] > peak:
+            peak = h['tx']
+
+    start_time = getUnixTime(vnstat['interfaces'][0]['updated']) - 3600
+    traffic = 0
+    intervals = 0
+
+    for f in vnstat['interfaces'][0]['traffic']['fiveminute']:
+        t = getUnixTime(f)
+
+        if t >= start_time:
+            traffic += f['tx']
+            intervals += 1
+
+    if intervals > 0:
+        traffic = int(traffic * 12 / intervals)
+        
+        if traffic > peak:
+            peak = traffic
+
+    peak_mbits = peak*8/60/60/1024/1024
+    return peak_mbits
+
 
 def getPeak():
     logging.debug("Getting vnstat...")
     vnstat = json.loads(subprocess.check_output(['/usr/bin/vnstat', '-h', '--json','--iface',iface]).decode('utf-8'))
     #with open('/home/leonard/freifunk/FfsScripts/vnstat.json','r') as fp:
     #    vnstat = json.load(fp)
-    data_hour = vnstat['interfaces'][0]['updated']['time']['hour']
-    data_minute = getUpdatedMinute(vnstat)
-    traffic = [0] * 24
-    peak = 0
 
-    for h in getHourlyTraffic(vnstat):
-        hour = getHourForHourlyInterval(h, vnstat)
-        traffic[hour] = h['tx']
-        if h['tx'] > peak:
-            peak = h['tx']
-
-    if data_minute > 5 and traffic[data_hour] > 0:
-        current_tx = traffic[data_hour] * 60/data_minute    # current hour contains data of less than 60 minutes
+    if vnstat['jsonversion'] == '1':
+        peak_mbits = getPeak_v1(vnstat)
+    elif vnstat['jsonversion'] == '2':
+        peak_mbits = getPeak_v2(vnstat)
     else:
-        # at data_minute <= 5 we can not get reliable data from vnstat
+        logging.debug("Unknown json version")
         sys.exit(0)
 
-    if current_tx > peak:
-        peak = current_tx
-
-    reference_tx = traffic[(data_hour+1)%24]
-
-    if current_tx > 0 and reference_tx > 0 and current_tx < reference_tx/3:
-        peak *= current_tx / reference_tx
-
-    peak_mbits = hourlyPeakToMbits(peak, vnstat)
     logging.debug("Found peak '{}'...".format(peak_mbits))
     return peak_mbits
 
@@ -109,9 +124,11 @@ class GatewayZone(object):
         except:
             return 0
 
+
 def getPreference(bwlimit):
     preference = int((bwlimit-getPeak()) / (bwlimit/100.))
     return preference
+
 
 def genData(segmentCount, preference=0):
     data = {}
@@ -127,6 +144,7 @@ def genData(segmentCount, preference=0):
 
     data['segments'] = segments
     return data
+
 
 def genJson(data,output):
     with open(output,'w') as fp:
