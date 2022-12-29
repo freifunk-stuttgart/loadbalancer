@@ -112,7 +112,7 @@ def getPeak():
 
 class GatewayZone(object):
     def __init__(self):
-        dns_addrinfo = socket.getaddrinfo('dns1.lihas.de', 0, family=socket.AF_INET)
+        dns_addrinfo = socket.getaddrinfo('dns2.lihas.de', 0, family=socket.AF_INET)
         dns_ip = dns_addrinfo[0][4][0]
         self._zone = dns.zone.from_xfr(dns.query.xfr(dns_ip, 'gw.freifunk-stuttgart.de'))
 

@@ -31,7 +31,7 @@ class GwLoadBalancer:
         self.maxAgeInSeconds = 60 * 15  # 15 minutes
 
     def dns_zone_transfer(self):
-        cmd = "/usr/bin/dig -t axfr gw.freifunk-stuttgart.de @dns1.lihas.de"
+        cmd = "/usr/bin/dig -t axfr gw.freifunk-stuttgart.de @dns2.lihas.de"
         self.zoneData = subprocess.check_output(cmd.split(" ")).decode("utf-8")
 
     def get_available_gw_from_dns(self):
