@@ -112,9 +112,19 @@ def getPeak():
 
 class GatewayZone(object):
     def __init__(self):
-        dns_addrinfo = socket.getaddrinfo('dns2.lihas.de', 0, family=socket.AF_INET)
-        dns_ip = dns_addrinfo[0][4][0]
-        self._zone = dns.zone.from_xfr(dns.query.xfr(dns_ip, 'gw.freifunk-stuttgart.de'))
+        self._zone = None
+        servers = ('dns2.lias.de','dns3.lihas.de')
+        for server in servers:
+            try:
+                dns_addrinfo = socket.getaddrinfo(server, 0, family=socket.AF_INET)
+                dns_ip = dns_addrinfo[0][4][0]
+                self._zone = dns.zone.from_xfr(dns.query.xfr(dns_ip, 'gw.freifunk-stuttgart.de'))
+                return
+            except:
+                pass
+        if self._zone == None:
+            print('Could not fetch zone', file=sys. stderr)
+            sys.exit(1)
 
     def getDnsStatus(self, gwid, segment):
         hostname = 'gw%02is%02i'%(gwid, segment)
