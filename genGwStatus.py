@@ -113,7 +113,7 @@ def getPeak():
 class GatewayZone(object):
     def __init__(self):
         self._zone = None
-        servers = ('dns2.lias.de','dns3.lihas.de')
+        servers = ('dns2.lihas.de','dns3.lihas.net')
         for server in servers:
             try:
                 dns_addrinfo = socket.getaddrinfo(server, 0, family=socket.AF_INET)
