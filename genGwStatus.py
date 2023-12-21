@@ -71,20 +71,26 @@ def getPeak_v2(vnstat):
         if t >= start_time and h['tx'] > peak:
             peak = h['tx']
 
-    start_time = getUnixTime(vnstat['interfaces'][0]['updated']) - 3600
+    start_time = getUnixTime(vnstat['interfaces'][0]['updated'])
+    start_hour = start_time - 3600
+    start_quarter = start_time - 900
+
     traffic = 0
     intervals = 0
 
     for f in vnstat['interfaces'][0]['traffic']['fiveminute']:
         t = getUnixTime(f)
 
-        if t >= start_time:
+        if t >= start_hour:
             traffic += f['tx']
             intervals += 1
 
+            if t >= start_quarter and f['tx']*12 > peak:
+                peak = f['tx']*12
+
     if intervals > 0:
         traffic = int(traffic * 12 / intervals)
-        
+
         if traffic > peak:
             peak = traffic
 
