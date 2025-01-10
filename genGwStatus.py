@@ -126,7 +126,6 @@ def genData(segmentCount, preference=0):
     data['timestamp'] = int(time.time())
 
     segments = {}
-    gatewayZone = GatewayZone()
     for s in range(1,segmentCount+1):
         segments[s] = {}
         segments[s]['preference'] = preference
