@@ -115,32 +115,6 @@ def getPeak():
     logging.debug("Found peak '{}'...".format(peak_mbits))
     return peak_mbits
 
-
-class GatewayZone(object):
-    def __init__(self):
-        self._zone = None
-        servers = ('dns2.lihas.de','dns3.lihas.net')
-        for server in servers:
-            try:
-                dns_addrinfo = socket.getaddrinfo(server, 0, family=socket.AF_INET)
-                dns_ip = dns_addrinfo[0][4][0]
-                self._zone = dns.zone.from_xfr(dns.query.xfr(dns_ip, 'gw.freifunk-stuttgart.de'))
-                return
-            except:
-                pass
-        if self._zone == None:
-            print('Could not fetch zone', file=sys. stderr)
-            sys.exit(1)
-
-    def getDnsStatus(self, gwid, segment):
-        hostname = 'gw%02is%02i'%(gwid, segment)
-        try:
-            record = self._zone.find_node(hostname, create=False)
-            return 1
-        except:
-            return 0
-
-
 def getPreference(bwlimit):
     preference = int((bwlimit-getPeak()) / (bwlimit/100.))
     return preference
@@ -156,7 +130,6 @@ def genData(segmentCount, preference=0):
     for s in range(1,segmentCount+1):
         segments[s] = {}
         segments[s]['preference'] = preference
-        segments[s]['dnsactive'] = gatewayZone.getDnsStatus(1, s)
 
     data['segments'] = segments
     return data
