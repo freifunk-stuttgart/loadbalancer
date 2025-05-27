@@ -136,6 +136,7 @@ def display_table_with_graph(top_peers):
 def touch(top_peers):
     for t in top_peers:
         k = t["peer_key"]
+        Path("/var/lib/ffs/blocked_keys").mkdir(parents=True, exist_ok=True)
         Path(f"/var/lib/ffs/blocked_keys/{k}").touch()
 
 
@@ -151,7 +152,7 @@ def main():
     top_n = args.top
 
     # Finde alle Sockets in /var/run/, die mit "fastd-vp" beginnen
-    socket_paths = glob.glob('/var/run/fastd-vp*.sock')
+    socket_paths = glob.glob('/var/run/fastd-vp*.sock') + glob.glob('/var/run/fastd/fastd-vp*.sock')
 
     if not socket_paths:
         print("Keine passenden Sockets gefunden.")
