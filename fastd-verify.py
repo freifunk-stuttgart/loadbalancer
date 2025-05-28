@@ -10,6 +10,7 @@ import argparse
 import logging
 import logging.handlers
 import json
+from pathlib import Path
 
 my_logger = logging.getLogger('fastd.verify')
 my_logger.setLevel(logging.DEBUG)
@@ -19,9 +20,21 @@ my_logger.addHandler(log_handler)
 DEFAULT_PREFERENCE = 50
 MAX_DELAY = 8.0
 OVERLOAD_DELAY = 9.0
+BLOCK_TIME = 60*10 # 10 minutes
 
+def is_key_blocked(FastdKey, blocked_keys_dir):
+    p = Path(blocked_keys_dir) / FastdKey
+    if p.exists():
+        if time.time() - p.stat().st_mtime < BLOCK_TIME:
+            return True
+        else:
+            p.unlink()
+    return False
 
-def IsValidKey(FilePath, FastdKey):
+def IsValidKey(FilePath, FastdKey, blocked_keys_dir = None):
+    if blocked_keys_dir is not None and is_key_blocked(FastdKey, blocked_keys_dir):
+        my_logger.debug(f'fastd-verify: {os.environ["INTERFACE"]} / {FastdKey} / key is blocked')
+        return False
     for FileName in os.listdir(FilePath):
         try:
             with open(os.path.join(FilePath, FileName), encoding = 'utf-8') as KeyFile:
@@ -54,12 +67,15 @@ if __name__ == '__main__':
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('-k', '--keyfolder', dest='keyfolder', action='store', required=True, help='path to keyfiles')
     parser.add_argument('-g', '--gwstatus', dest='gwstatus', action='store', required=True, help='path to gwstatus.json')
+    parser.add_argument('-b', '--blockdir', dest='blockdir', action='store', required=False, help='path to directory with keys to block')
     args = parser.parse_args()
 
     if 'INTERFACE' not in os.environ or 'PEER_KEY' not in os.environ:
         my_logger.error('fastd-verify: ** Error - Environment Variables not set')
     else:
-        if IsValidKey(args.keyfolder, os.environ['PEER_KEY'].lower()):
+        if args.blockdir is None:
+            blocked_keys_dir="/var/lib/ffs/blocked_keys"
+        if IsValidKey(args.keyfolder, os.environ['PEER_KEY'].lower(), blocked_keys_dir=blocked_keys_dir):
             Preference = GetGwPreference(args.gwstatus, int(os.environ['INTERFACE'][3:]))
             my_logger.debug('fastd-verify: %s / %s / %d will be delayed...' % (os.environ['INTERFACE'], os.environ['PEER_KEY'], Preference))
 
